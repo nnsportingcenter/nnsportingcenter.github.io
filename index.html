@@ -750,7 +750,7 @@ function showRenewalDueFromHome(){
     return '<tr class="member-row" data-member-id="'+esc(String(m.id||''))+ '"><td><div class="photo member-photo" data-photo-id="'+esc(String(m.id||''))+'">'+(m.photo?'<img src="'+esc(String(m.photo))+'" alt="Photo" loading="lazy">':'👤')+'</div></td>'+
       '<td><b>'+esc(id)+'</b></td><td style="display:'+(admin?'table-cell':'none')+'">'+(isDonor(m)?'<span class="badge" style="background:#fff0c2;color:#8a5a00">⭐ Donor</span>':'<span class="badge" style="background:#eef2f7;color:#52606d">Member</span>')+'</td><td><b>'+esc(memberName(m.name))+'</b><small style="display:block;color:#778">'+esc(m.phone||'')+
       (m.phone?'<a class="wa-btn" href="https://wa.me/'+String(m.phone).replace(/\D/g,'')+'" target="_blank" rel="noopener">💬 WhatsApp</a>':'')+
-      '</small></td><td><b>'+esc(m.gender||'Male')+'</b></td><td><b>'+esc(m.blood||'—')+'</b></td>'+
+      '</small></td><td><b>'+esc(m.gender||'—')+'</b></td><td><b>'+esc(m.blood||'—')+'</b></td>'+
       '<td style="display:'+(admin?'table-cell':'none')+'">'+fmtDOB(m.dob)+'</td><td style="display:'+(admin?'table-cell':'none')+'">₹'+Number(m.fee||0)+'</td>'+
       '<td>'+fmt(m.paid)+'</td><td>'+ (validityDate(m)?fmt(validityDate(m)):'—')+' <small style="display:block;color:#778">'+(validityMonths(m)>0?validityMonths(m)+' মাস':'—')+'</small></td>'+
       '<td>'+ (admin ? esc(String(m.aadhaar||'—')) : 'XXXX-XXXX-'+esc(String(m.aadhaar||'').slice(-4)||'—')) +'</td>'+
@@ -772,7 +772,7 @@ function showExpiredFromHome(){
     return '<tr class="member-row" data-member-id="'+esc(String(m.id||''))+ '"><td><div class="photo member-photo" data-photo-id="'+esc(String(m.id||''))+'">'+(m.photo?'<img src="'+esc(String(m.photo))+'" alt="Photo" loading="lazy">':'👤')+'</div></td>'+
       '<td><b>'+esc(id)+'</b></td><td style="display:'+(admin?'table-cell':'none')+'">'+(isDonor(m)?'<span class="badge" style="background:#fff0c2;color:#8a5a00">⭐ Donor</span>':'<span class="badge" style="background:#eef2f7;color:#52606d">Member</span>')+'</td>'+
       '<td><b>'+esc(memberName(m.name))+'</b><small style="display:block;color:#778">'+esc(m.phone||'')+(m.phone?'<a class="wa-btn" href="https://wa.me/'+String(m.phone).replace(/\D/g,'')+'" target="_blank" rel="noopener">💬 WhatsApp</a>':'')+'</small></td>'+
-      '<td><b>'+esc(m.gender||'Male')+'</b></td><td><b>'+esc(m.blood||'—')+'</b></td>'+
+      '<td><b>'+esc(m.gender||'—')+'</b></td><td><b>'+esc(m.blood||'—')+'</b></td>'+
       '<td style="display:'+(admin?'table-cell':'none')+'">'+fmtDOB(m.dob)+'</td><td style="display:'+(admin?'table-cell':'none')+'">₹'+Number(m.fee||0)+'</td>'+
       '<td>'+fmt(m.paid)+'</td><td>'+(validityDate(m)?fmt(validityDate(m)):'—')+' <small style="display:block;color:#778">'+(validityMonths(m)>0?validityMonths(m)+' মাস':'—')+'</small></td>'+
       '<td>'+ (admin ? esc(String(m.aadhaar||'—')) : 'XXXX-XXXX-'+esc(String(m.aadhaar||'').slice(-4)||'—')) +'</td>'+
@@ -864,7 +864,7 @@ function rows(){
       '<td><b>'+esc(id)+'</b></td><td style="display:'+(admin?'table-cell':'none')+'">'+(isDonor(m)?'<span class="badge" style="background:#fff0c2;color:#8a5a00">⭐ Donor</span>':'<span class="badge" style="background:#eef2f7;color:#52606d">Member</span>')+'</td><td><b>'+esc(memberName(m.name))+'<small style="display:block;color:#778">'+esc(m.phone||'')+
         (m.phone?'<a class="wa-btn" href="https://wa.me/'+String(m.phone).replace(/\D/g,'')+'" target="_blank" rel="noopener">💬 WhatsApp</a>':'')+
         '</small></td>'+
-      '<td><b>'+esc(m.gender||'Male')+'</b></td><td><b>'+esc(m.blood||'—')+'</b></td><td style="display:'+(admin?'table-cell':'none')+'">'+fmtDOB(m.dob)+'</td>'+
+      '<td><b>'+esc(m.gender||'—')+'</b></td><td><b>'+esc(m.blood||'—')+'</b></td><td style="display:'+(admin?'table-cell':'none')+'">'+fmtDOB(m.dob)+'</td>'+
       '<td style="display:'+(admin?'table-cell':'none')+'">₹'+Number(m.fee||0)+'</td><td>'+fmt(m.paid)+'</td>'+
       '<td>'+ (validityDate(m)?fmt(validityDate(m)):'—')+' <small style="display:block;color:#778">'+(validityMonths(m)>0?validityMonths(m)+' মাস':'—')+'</small></td>'+
       '<td>'+ (admin ? esc(String(m.aadhaar||'—')) : 'XXXX-XXXX-'+esc(String(m.aadhaar||'').slice(-4)||'—')) +'</td>'+
@@ -962,7 +962,7 @@ function closeMemberPhoto(){
   if(img)img.removeAttribute('src');
 }
 async function fetchMemberFresh(id){
-  const fields='id,member_id,name,phone,mobile,aadhaar,dob,blood,gender,fee,paid,validity_end,address,photo';
+  const fields='id,member_id,name,phone,mobile,aadhaar,dob,blood,fee,paid,validity_end,address,photo';
   let last=null;
   for(let attempt=0;attempt<2;attempt++){
     try{
@@ -1004,7 +1004,7 @@ async function openMemberDetails(id){
     }
     const vals=[];
     vals.push(detailItem('Mobile',m.phone||m.mobile));
-    vals.push(detailItem('Gender',m.gender||'Male'));
+    vals.push(detailItem('Gender',m.gender||'—'));
     vals.push(detailItem('Blood Group',m.blood));
     vals.push(detailItem('Membership Fee','₹'+Number(m.fee||0)));
     vals.push(detailItem('Payment Date',fmt(m.paid)));
@@ -1092,7 +1092,7 @@ function loadFastCache(){
     if(!raw)return false;
     const c=JSON.parse(raw);
     if(!c || !Array.isArray(c.members))return false;
-    members=c.members.map(m=>({...m,member_id:(m.member_id??''),member_type:savedMemberType(m.id),gender:(m.gender||'Male')}));
+    members=c.members.map(m=>({...m,member_id:(m.member_id??''),member_type:savedMemberType(m.id),gender:(m.gender||'—')}));
     if(c.settings) settings={...settings,...c.settings};
     apply(); render();
     return true;
@@ -1131,6 +1131,10 @@ function saveLocalNotice(){
 }
 
 async function loadData(){
+  // The connected Supabase members table currently has no `gender` column.
+  // Keep member loading independent of that optional field so the dashboard
+  // does not fail with: column members.gender does not exist.
+
   hideDiagnostic();
   clearError();
   const hadCache=loadFastCache();
@@ -1140,10 +1144,10 @@ async function loadData(){
     let data;
     let firstError=null;
     try{
-      data=await rest('/members?select=id,memberid,member_id,name,phone,mobile,aadhaar,dob,blood,gender,fee,paid,validity_end,address&order=name.asc&limit=200');
+      data=await rest('/members?select=id,memberid,member_id,name,phone,mobile,aadhaar,dob,blood,fee,paid,validity_end,address&order=name.asc&limit=200');
     }catch(e){
       firstError=e;
-      data=await rest('/members?select=id,memberid,member_id,name,phone,mobile,gender,fee,paid,validity_end,address&order=name.asc&limit=200');
+      data=await rest('/members?select=id,memberid,member_id,name,phone,mobile,fee,paid,validity_end,address&order=name.asc&limit=200');
     }
     if(!Array.isArray(data)) throw new Error('Supabase returned an unexpected members response.');
     members=data.map(m=>{
@@ -1151,7 +1155,7 @@ async function loadData(){
         member_id:String((m.member_id??m.memberid??'')).trim(),
         phone:String((m.phone??m.mobile??'')).trim(),
         member_type:savedMemberType(m.id),
-        gender:(m.gender||'Male')
+        gender:(m.gender||'—')
       };
       if(String(x.name||'').trim().toLowerCase()==='prasanta basu') x.member_id='NNSC0626001';
       if(!x.validity_end && x.paid && Number(x.fee)>0) x.validity_end=validityDate(x);
