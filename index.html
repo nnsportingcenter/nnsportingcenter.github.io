@@ -114,6 +114,15 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
   #paymentReceiptModal .receipt-paper{border:1px solid #bbb!important}
 }
 </style>
+
+<style id="fixed-member-scrollbar-css">
+.members-scrollbar-top{position:sticky;top:var(--nnsc-header-h,0px);z-index:15;height:30px;margin:0 0 6px;background:rgba(255,255,255,.96);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.12);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable;display:none}
+.members-scrollbar-top-inner{height:1px;min-width:1180px}
+.members-scrollbar-top::-webkit-scrollbar{height:14px}
+.members-scrollbar-top::-webkit-scrollbar-thumb{background:#9aa8b8;border-radius:10px}
+.members-scrollbar-top::-webkit-scrollbar-track{background:#eef2f6;border-radius:10px}
+@media(max-width:760px){.members-scrollbar-top{height:28px;margin:0 0 5px;border-radius:10px}}
+</style>
 </head><body>
 <header><div id="headerWatermark" class="header-watermark" aria-hidden="true"></div><div class="head"><img id="siteLogo" class="logo" alt="logo"><div class="brand"><h1 id="siteName">NORTH NILACHAL SPORTING CENTRE</h1><small id="regNo">Registration No.: S/1L/81249</small><small style="display:block;opacity:.8">Member Management System</small></div></div>
 <nav><button class="active" data-tab="home">🏠 Home</button><button data-tab="members" style="font-size:15px">👥 Members</button><button data-tab="apply">📝 Membership Form</button><button data-tab="pricing">💳 Membership & Pricing</button><button id="adminBtn">🔒 Admin</button></nav></header>
@@ -129,7 +138,7 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
 <audio id="siteVoice" preload="auto"></audio>
 
 <section id="home" class="section active"><div id="loadingNotice" class="card hint" style="display:none;text-align:center;font-weight:700">⏳ Member details are loading… Please wait</div><div id="diagnosticNotice" class="card" style="display:none;margin:8px 0;background:#fff7ed;color:#9a3412;border-left:5px solid #ea580c"><b>⚠️ Member data connection problem</b><div id="diagnosticText" style="margin-top:6px;white-space:pre-wrap;font-size:14px"></div><button type="button" class="btn primary" style="margin-top:10px" onclick="loadData()">🔄 আবার চেষ্টা করুন</button></div><div id="birthdayTop"></div><div class="grid"><div class="card stat" id="totalMembersCard" role="button" tabindex="0" title="View all members" style="cursor:pointer">Total Members<b id="total">0</b></div><div class="card stat" id="birthdayTodayCard" role="button" tabindex="0" title="View today’s birthdays" style="cursor:pointer">Birthdays Today<b id="birthdayTodayCount">0</b></div><div class="card stat" id="renewalDueCard" role="button" tabindex="0" title="View renewal due members" style="cursor:pointer">Renewal Due<b id="due">0</b></div><div class="card stat" id="expiredCard" role="button" tabindex="0" title="View expired members" style="cursor:pointer">Expired<b id="expired">0</b></div></div><div class="card upcoming-birthday" id="upcomingBirthdayCard" role="button" tabindex="0" title="Click to view next member birthday"><h2>🎂 Upcoming Birthday</h2><div id="upcomingBirthdayInfo" style="display:none;margin-top:7px"><b class="next-bday-name" id="nextBdayName"></b><div class="next-bday-meta" id="nextBdayMeta"></div></div></div></section>
-<section id="members" class="section"><div class="grid member-summary-grid" style="display:none!important"><div class="card stat"><span>Total Members</span><b id="membersTotal">0</b></div><div class="card stat"><span>Renewal Due</span><b id="membersDue">0</b></div><div class="card stat"><span>Expired</span><b id="membersExpired">0</b></div></div><div class="toolbar"><input id="search" class="input" placeholder="Name/Mobile দিয়ে খুঁজুন"><button id="addBtn" class="btn primary" style="display:none">+ Add Member</button></div><div class="card tablewrap"><table><thead><tr><th>Photo</th><th>Member ID</th><th id="memberTypeHead" style="display:none">Member Type</th><th>Name</th><th>Gender</th><th>Blood Group</th><th id="dobHead">Date of Birth</th><th id="feeHead" style="display:none">Fee</th><th>Payment Date</th><th>Validity</th><th id="aadhaarHead">Aadhaar (Last 4)</th><th>Action</th></tr></thead><tbody id="rows"><tr><td colspan="13">⏳ Members loading...</td></tr></tbody></table></div></section>
+<section id="members" class="section"><div class="grid member-summary-grid" style="display:none!important"><div class="card stat"><span>Total Members</span><b id="membersTotal">0</b></div><div class="card stat"><span>Renewal Due</span><b id="membersDue">0</b></div><div class="card stat"><span>Expired</span><b id="membersExpired">0</b></div></div><div class="toolbar"><input id="search" class="input" placeholder="Name/Mobile দিয়ে খুঁজুন"><button id="addBtn" class="btn primary" style="display:none">+ Add Member</button></div><div id="membersScrollbarTop" class="members-scrollbar-top" aria-label="Member list horizontal scrollbar"><div id="membersScrollbarTopInner" class="members-scrollbar-top-inner"></div></div><div class="card tablewrap" id="membersTableWrap"><table><thead><tr><th>Photo</th><th>Member ID</th><th id="memberTypeHead" style="display:none">Member Type</th><th>Name</th><th>Gender</th><th>Blood Group</th><th id="dobHead">Date of Birth</th><th id="feeHead" style="display:none">Fee</th><th>Payment Date</th><th>Validity</th><th id="aadhaarHead">Aadhaar (Last 4)</th><th>Action</th></tr></thead><tbody id="rows"><tr><td colspan="13">⏳ Members loading...</td></tr></tbody></table></div></section>
 
 <section id="pricing" class="section">
   <div class="card">
@@ -862,7 +871,7 @@ function rows(){
   $('rows').innerHTML=list.length?list.map(m=>{
     let s=st(m),id=getMemberId(m)||'—';
     return '<tr class="member-row" data-member-id="'+esc(String(m.id||''))+ '"><td><div class="photo member-photo" data-photo-id="'+esc(String(m.id||''))+'">'+(m.photo?'<img src="'+esc(String(m.photo))+'" alt="Photo" loading="lazy">':'👤')+'</div></td>'+
-      '<td><b>'+esc(id)+'</b></td><td style="display:'+(admin?'table-cell':'none')+'">'+(isDonor(m)?'<span class="badge" style="background:#fff0c2;color:#8a5a00">⭐ Donor</span>':'<span class="badge" style="background:#eef2f7;color:#52606d">Member</span>')+'</td><td><b>'+esc(memberName(m.name))+'<small style="display:block;color:#778">'+esc(m.phone||'')+
+      '<td><b>'+esc(id)+'</b></td><td style="display:'+(admin?'table-cell':'none')+'">'+(isDonor(m)?'<span class="badge" style="background:#fff0c2;color:#8a5a00">⭐ Donor</span>':'<span class="badge" style="background:#eef2f7;color:#52606d">Member</span>')+'</td><td><b class="member-name-link" data-detail-id="'+esc(String(m.id||''))+'" role="button" tabindex="0">'+esc(memberName(m.name))+'</b><small style="display:block;color:#778">'+esc(m.phone||'')+
         (m.phone?'<a class="wa-btn" href="https://wa.me/'+String(m.phone).replace(/\D/g,'')+'" target="_blank" rel="noopener">💬 WhatsApp</a>':'')+
         '</small></td>'+
       '<td><b>'+esc(m.gender||'—')+'</b></td><td><b>'+esc(m.blood||'—')+'</b></td><td style="display:'+(admin?'table-cell':'none')+'">'+fmtDOB(m.dob)+'</td>'+
@@ -891,12 +900,12 @@ function queueMemberPhoto(id){
   if(!id || photoLoadedIds.has(id) || photoLoadingIds.has(id) || photoQueue.includes(id))return;
   photoQueue.push(id);
   if(photoQueueTimer)return;
-  photoQueueTimer=setTimeout(flushMemberPhotoQueue,80);
+  photoQueueTimer=setTimeout(flushMemberPhotoQueue,0);
 }
 
 async function flushMemberPhotoQueue(){
   photoQueueTimer=null;
-  const batch=photoQueue.splice(0,6);
+  const batch=photoQueue.splice(0,8);
   if(!batch.length)return;
   batch.forEach(id=>photoLoadingIds.add(id));
   try{
@@ -922,8 +931,29 @@ async function flushMemberPhotoQueue(){
     batch.forEach(id=>photoLoadedIds.delete(id));
   }finally{
     batch.forEach(id=>photoLoadingIds.delete(id));
-    if(photoQueue.length && !photoQueueTimer)photoQueueTimer=setTimeout(flushMemberPhotoQueue,80);
+    if(photoQueue.length && !photoQueueTimer)photoQueueTimer=setTimeout(flushMemberPhotoQueue,0);
   }
+}
+
+async function loadMemberPhotosDirect(list){
+  const ids=(list||[]).map(m=>String(m.id||'')).filter(Boolean);
+  if(!ids.length)return;
+  try{
+    const data=await rest('/members?select=id,photo&id=in.('+ids.join(',')+')');
+    if(!Array.isArray(data))return;
+    data.forEach(r=>{
+      const id=String(r.id||''), src=String(r.photo||'');
+      const mem=members.find(x=>String(x.id)===id);
+      if(mem)mem.photo=src;
+      const el=document.querySelector('.member-photo[data-photo-id="'+id+'"]');
+      if(el&&src){
+        const img=document.createElement('img');
+        img.alt='Member photo'; img.loading='eager'; img.src=src;
+        img.onerror=()=>{el.innerHTML='👤';};
+        el.replaceChildren(img);
+      }
+    });
+  }catch(e){console.warn('Direct member photo load failed:',e.message);}
 }
 
 function loadMemberPhotosFast(list){
@@ -935,7 +965,7 @@ function loadMemberPhotosFast(list){
       queueMemberPhoto(id);
       photoObserver.unobserve(entry.target);
     });
-  },{rootMargin:'250px 0px'});
+  },{rootMargin:'600px 0px'});
   document.querySelectorAll('.member-photo[data-photo-id]').forEach(el=>{
     const img=el.querySelector('img');
     if(img){
@@ -980,49 +1010,93 @@ function detailItem(label,value){
 async function openMemberDetails(id){
   id=String(id||''); if(!id)return;
   const modal=$('memberDetailModal');
-  if(!modal)return;
-  const local=members.find(x=>String(x.id)===id)||{};
-  $('memberDetailName').textContent=memberName(local.name)||'Loading...';
-  $('memberDetailId').textContent=getMemberId(local)||'';
-  $('memberDetailStatus').innerHTML='<span class="badge due">Loading details…</span>';
+  let local=members.find(x=>String(x.id)===id);
+
+  // Open the modal immediately from the member list cache.
+  // Do NOT wait for a full Supabase request before showing details.
+  if(!local){
+    try{
+      local=await fetchMemberFresh(id);
+      if(local) members.push(local);
+    }catch(e){
+      console.warn('Member details fallback failed:',e.message);
+    }
+  }
+
+  if(!local){
+    modal.classList.add('show');
+    $('memberDetailStatus').innerHTML='<span class="badge exp">Member not found</span>';
+    return;
+  }
+
+  Object.assign(local,{});
+  $('memberDetailStatus').innerHTML='<span class="badge due">Loading photo…</span>';
   $('memberDetailGrid').innerHTML='';
   $('memberDetailPhotoWrap').innerHTML='👤';
+  $('memberDetailTitle').textContent='👤 Member Details';
+  $('memberDetailName').textContent=memberName(local.name)||'—';
+  $('memberDetailId').textContent=getMemberId(local)||'—';
+  const status=st(local);
+  $('memberDetailStatus').innerHTML=status[0]==='ok'?'<span class="badge ok">Active</span>':status[0]==='due'?'<span class="badge due">Renewal Due</span>':'<span class="badge exp">Expired</span>';
+
+  // Render all available member data immediately.
+  const vals=[];
+  vals.push(detailItem('Father Name',local.father_name||'—'));
+  vals.push(detailItem('Mobile',local.phone||local.mobile||'—'));
+  vals.push(detailItem('Gender',local.gender||'—'));
+  vals.push(detailItem('Blood Group',local.blood||'—'));
+  vals.push(detailItem('Membership Fee','₹'+Number(local.fee||0)));
+  vals.push(detailItem('Payment Date',fmt(local.paid)));
+  vals.push(detailItem('Validity',validityDate(local)?fmt(validityDate(local)):'—'));
+  vals.push(detailItem('Validity Months',validityMonths(local)>0?validityMonths(local)+' months':'—'));
+  if(admin) vals.push(detailItem('Date of Birth',fmtDOB(local.dob)));
+  vals.push(detailItem('Aadhaar',admin?String(local.aadhaar||'—'):'XXXX-XXXX-'+String(local.aadhaar||'').slice(-4)||'—'));
+  vals.push(detailItem('Address',local.address||'—'));
+  $('memberDetailGrid').innerHTML=vals.join('');
   modal.classList.add('show');
-  try{
-    const m=await fetchMemberFresh(id);
-    if(!m){$('memberDetailStatus').innerHTML='<span class="badge exp">Member not found</span>';return;}
-    Object.assign(local,m);
-    const status=st(m);
-    $('memberDetailTitle').textContent='👤 Member Details';
-    $('memberDetailName').textContent=memberName(m.name)||'—';
-    $('memberDetailId').textContent=getMemberId(m)||'—';
-    $('memberDetailStatus').innerHTML=status[0]==='ok'?'<span class="badge ok">Active</span>':status[0]==='due'?'<span class="badge due">Renewal Due</span>':'<span class="badge exp">Expired</span>' ;
-    const wrap=$('memberDetailPhotoWrap');
-    if(m.photo){
-      const img=document.createElement('img'); img.className='member-detail-photo'; img.alt='Member photo'; img.src=String(m.photo);
-      let retried=false; img.onerror=()=>{ if(!retried){ retried=true; img.src=String(m.photo)+(String(m.photo).includes('?')?'&':'?')+'_retry='+Date.now(); return; } wrap.innerHTML='👤'; };
-      wrap.innerHTML=''; wrap.appendChild(img);
+
+  // Load the photo independently in the background.
+  const wrap=$('memberDetailPhotoWrap');
+  const showPhoto=(src)=>{
+    if(!src)return;
+    const img=document.createElement('img');
+    img.className='member-detail-photo';
+    img.alt='Member photo';
+    img.loading='eager';
+    img.decoding='async';
+    img.src=String(src);
+    let retried=false;
+    img.onerror=()=>{
+      if(!retried){
+        retried=true;
+        img.src=String(src)+(String(src).includes('?')?'&':'?')+'_retry='+Date.now();
+      }else{
+        wrap.innerHTML='👤';
+      }
+    };
+    wrap.innerHTML='';
+    wrap.appendChild(img);
+  };
+
+  if(local.photo){
+    showPhoto(local.photo);
+  }else{
+    try{
+      const data=await rest('/members?select=id,photo&id=eq.'+encodeURIComponent(id)+'&limit=1');
+      if(Array.isArray(data)&&data[0]&&data[0].photo){
+        local.photo=data[0].photo;
+        showPhoto(local.photo);
+      }
+    }catch(e){
+      console.warn('Member photo loading failed:',e.message);
     }
-    const vals=[];
-    vals.push(detailItem('Father Name',m.father_name||'—'));
-    vals.push(detailItem('Mobile',m.phone||m.mobile));
-    vals.push(detailItem('Gender',m.gender||'—'));
-    vals.push(detailItem('Blood Group',m.blood));
-    vals.push(detailItem('Membership Fee','₹'+Number(m.fee||0)));
-    vals.push(detailItem('Payment Date',fmt(m.paid)));
-    vals.push(detailItem('Validity',validityDate(m)?fmt(validityDate(m)):'—'));
-    vals.push(detailItem('Validity Months',validityMonths(m)>0?validityMonths(m)+' months':'—'));
-    if(admin) vals.push(detailItem('Date of Birth',fmtDOB(m.dob)));
-    vals.push(detailItem('Aadhaar',admin?String(m.aadhaar||'—'):'XXXX-XXXX-'+String(m.aadhaar||'').slice(-4)||'—'));
-    vals.push(detailItem('Address',m.address));
-    $('memberDetailGrid').innerHTML=vals.join('');
-  }catch(e){
-    console.warn('Member details loading failed:',e.message);
-    $('memberDetailStatus').innerHTML='<span class="badge exp">Details could not be loaded</span>';
   }
 }
+
 $('photoViewerClose').onclick=closeMemberPhoto;
 $('rows').addEventListener('click',e=>{
+  const name=e.target.closest('.member-name-link');
+  if(name){openMemberDetails(name.getAttribute('data-detail-id'));return;}
   const photo=e.target.closest('.member-photo');
   if(photo){openMemberPhoto(photo.getAttribute('data-photo-id'));return;}
   if(e.target.closest('button,a,input,select'))return;
@@ -1615,7 +1689,7 @@ $('memberForm').onsubmit=async e=>{
 
 window.editM=async id=>{
   if(!admin)return;let m=members.find(x=>x.id===id);if(!m)return;
-  openTab('add');$('formTitle').textContent='Edit Member';$('eid').value=m.id;$('memberType').value=isDonor(m)?'donor':'regular';$('memberId').value=getMemberId(m)||nextMemberId($('memberType').value);$('name').value=memberName(m.name);$('fatherName').value=memberName(m.father_name||'');$('phone').value=m.phone||'';$('aadhaar').value=m.aadhaar||'';$('dob').value=m.dob||'';$('gender').value=m.gender||'Male';$('blood').value=m.blood||'';$('fee').value=m.fee||100;$('paid').value=m.paid||'';$('address').value=m.address||'';memberPhoto='';$('memberPreview').removeAttribute('src');$('deleteMemberPhotoBtn').style.display='none';$('memberPhotoDeleteStatus').textContent='';
+  openTab('add');$('formTitle').textContent='Edit Member';$('eid').value=m.id;$('memberType').value=isDonor(m)?'donor':'regular';$('memberId').value=getMemberId(m)||nextMemberId($('memberType').value);$('name').value=memberName(m.name);$('phone').value=m.phone||'';$('aadhaar').value=m.aadhaar||'';$('dob').value=m.dob||'';$('gender').value=m.gender||'Male';$('blood').value=m.blood||'';$('fee').value=m.fee||100;$('paid').value=m.paid||'';$('address').value=m.address||'';memberPhoto='';$('memberPreview').removeAttribute('src');$('deleteMemberPhotoBtn').style.display='none';$('memberPhotoDeleteStatus').textContent='';
   try{
     const d=await rest('/members?id=eq.'+encodeURIComponent(id)+'&select=photo&limit=1');
     memberPhoto=(Array.isArray(d)&&d[0]&&d[0].photo)||'';
@@ -2279,6 +2353,51 @@ loadFastCache();
 apply();
 initVoiceControls();
 loadData();
+</script>
+
+<script id="fixed-member-scrollbar-js">
+(function(){
+  function setupMemberScrollbar(){
+    const top=document.getElementById('membersScrollbarTop');
+    const inner=document.getElementById('membersScrollbarTopInner');
+    const wrap=document.getElementById('membersTableWrap');
+    const header=document.querySelector('header');
+    if(!top||!inner||!wrap)return;
+    const syncHeader=()=>{
+      // Keep the top scrollbar below the visible header when the header is present.
+      if(header){
+        const h=Math.ceil(header.getBoundingClientRect().height);
+        document.documentElement.style.setProperty('--nnsc-header-h',h+'px');
+      }
+    };
+    const syncWidth=()=>{
+      const table=wrap.querySelector('table');
+      const w=table?Math.max(table.scrollWidth,wrap.clientWidth):wrap.scrollWidth;
+      inner.style.width=w+'px';
+      top.style.display=w>top.clientWidth?'block':'none';
+    };
+    let lock=false;
+    top.addEventListener('scroll',()=>{
+      if(lock)return; lock=true; wrap.scrollLeft=top.scrollLeft;
+      requestAnimationFrame(()=>lock=false);
+    },{passive:true});
+    wrap.addEventListener('scroll',()=>{
+      if(lock)return; lock=true; top.scrollLeft=wrap.scrollLeft;
+      requestAnimationFrame(()=>lock=false);
+    },{passive:true});
+    const refresh=()=>{syncHeader();syncWidth();};
+    refresh();
+    window.addEventListener('resize',refresh,{passive:true});
+    window.addEventListener('orientationchange',()=>setTimeout(refresh,100),{passive:true});
+    const obs=new MutationObserver(()=>requestAnimationFrame(syncWidth));
+    obs.observe(wrap,{childList:true,subtree:true});
+    document.querySelectorAll('nav button').forEach(b=>
+      b.addEventListener('click',()=>setTimeout(refresh,80))
+    );
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setupMemberScrollbar);
+  else setupMemberScrollbar();
+})();
 </script>
 
 </body></html>
