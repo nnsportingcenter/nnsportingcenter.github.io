@@ -677,13 +677,41 @@ async function nextMemberIdFresh(type='regular'){
 }
 
 function unpackMediaSettings(){
-  const raw=String(settings.logo||'');
-  if(raw.startsWith('{') && raw.includes('"__nnsc_media"')){
+  const raw=String(settings.logo||'').trim();
+  if(raw.startsWith('{') && raw.includes('\"__nnsc_media\"')){
     try{
       const b=JSON.parse(raw);
-      if(b.__nnsc_media){settings.logo=b.logo||'';settings.headerBg=b.headerBg||'';settings.headerBgOpacity=(typeof b.headerBgOpacity==='number'?Math.max(0.03,Math.min(0.35,b.headerBgOpacity)):0.12);settings.voice=b.voice||'';settings.voiceVolume=(typeof b.voiceVolume==='number'?Math.max(0,Math.min(1,b.voiceVolume)):0.8);settings.birthdayMusic=(b.birthdayMusic!==false);if(Object.prototype.hasOwnProperty.call(b,'notice'))settings.notice=String(b.notice||'');}
+      if(b.__nnsc_media){
+        settings.logo=typeof b.logo==='string'?b.logo.trim():'';
+        settings.headerBg=typeof b.headerBg==='string'?b.headerBg:'';
+        settings.headerBgOpacity=(typeof b.headerBgOpacity==='number'?Math.max(0.03,Math.min(0.35,b.headerBgOpacity)):0.12);
+        settings.voice=typeof b.voice==='string'?b.voice:'';
+        settings.voiceVolume=(typeof b.voiceVolume==='number'?Math.max(0,Math.min(1,b.voiceVolume)):0.8);
+        settings.birthdayMusic=(b.birthdayMusic!==false);
+        if(Object.prototype.hasOwnProperty.call(b,'notice'))settings.notice=String(b.notice||'');
+      }
     }catch(e){console.warn('Media settings decode skipped:',e.message)}
   }
+}
+function applyLogo(){
+  const el=$('siteLogo');
+  if(!el)return;
+  const src=String(settings.logo||'').trim();
+  if(!src || src.startsWith('{')){
+    el.removeAttribute('src');
+    el.style.display='none';
+    return;
+  }
+  el.onload=()=>{el.style.display='block';};
+  el.onerror=()=>{
+    console.warn('Club logo image could not be decoded.');
+    el.style.display='none';
+  };
+  el.decoding='async';
+  el.loading='eager';
+  el.src=src;
+  // Force a visible logo even if a browser cached an earlier failed state.
+  if(el.complete && el.naturalWidth>0)el.style.display='block';
 }
 function packMediaSettings(){
   return JSON.stringify({__nnsc_media:1,logo:settings.logo||'',headerBg:settings.headerBg||'',headerBgOpacity:(typeof settings.headerBgOpacity==='number'?Math.max(0.03,Math.min(0.35,settings.headerBgOpacity)):0.12),voice:settings.voice||'',voiceVolume:(typeof settings.voiceVolume==='number'?Math.max(0,Math.min(1,settings.voiceVolume)):0.8),birthdayMusic:settings.birthdayMusic!==false,notice:settings.notice||''});
@@ -726,10 +754,12 @@ function apply(){
       hw.style.display='none';
     }
   }
-  if(settings.logo){
-    $('siteLogo').src=settings.logo;$('siteLogo').style.display='block';
-    if($('logoPreview'))$('logoPreview').src=settings.logo;
-  }else $('siteLogo').style.display='none';
+  applyLogo();
+  if($('logoPreview')){
+    const lp=String(settings.logo||'').trim();
+    if(lp && !lp.startsWith('{')){$('logoPreview').src=lp;$('logoPreview').style.display='block';}
+    else {$('logoPreview').removeAttribute('src');$('logoPreview').style.display='none';}
+  }
   const noticeText=(settings.notice||'').trim();
   if($('scrollNoticeText')){
     $('scrollNoticeText').textContent=noticeText||'';
@@ -1972,9 +2002,18 @@ $('confirmPayment').onclick=async()=>{
 };
 
 $('search').oninput=rows;
-$('logoFile').onchange=e=>{
+$('logoFile').onchange=async e=>{
   const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();r.onload=()=>{logoData=r.result;settings.logo=logoData;$('logoPreview').src=logoData;$('logoPreview').style.display='block'};r.readAsDataURL(f);
+  try{
+    logoData=await compressImageFileTo100KB(f);
+    settings.logo=logoData;
+    applyLogo();
+    $('logoPreview').src=logoData;
+    $('logoPreview').style.display='block';
+  }catch(err){
+    alert('❌ Logo compress করা যায়নি: '+(err.message||err));
+    e.target.value='';
+  }
 };
 $('headerBgFile').onchange=async e=>{
   const f=e.target.files[0];if(!f)return;
