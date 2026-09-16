@@ -1010,89 +1010,47 @@ function detailItem(label,value){
 async function openMemberDetails(id){
   id=String(id||''); if(!id)return;
   const modal=$('memberDetailModal');
-  let local=members.find(x=>String(x.id)===id);
-
-  // Open the modal immediately from the member list cache.
-  // Do NOT wait for a full Supabase request before showing details.
-  if(!local){
-    try{
-      local=await fetchMemberFresh(id);
-      if(local) members.push(local);
-    }catch(e){
-      console.warn('Member details fallback failed:',e.message);
-    }
-  }
-
-  if(!local){
-    modal.classList.add('show');
-    $('memberDetailStatus').innerHTML='<span class="badge exp">Member not found</span>';
-    return;
-  }
-
-  Object.assign(local,{});
-  $('memberDetailStatus').innerHTML='<span class="badge due">Loading photo…</span>';
+  if(!modal)return;
+  const local=members.find(x=>String(x.id)===id)||{};
+  $('memberDetailName').textContent=memberName(local.name)||'Loading...';
+  $('memberDetailId').textContent=getMemberId(local)||'';
+  $('memberDetailStatus').innerHTML='<span class="badge due">Loading details…</span>';
   $('memberDetailGrid').innerHTML='';
   $('memberDetailPhotoWrap').innerHTML='👤';
-  $('memberDetailTitle').textContent='👤 Member Details';
-  $('memberDetailName').textContent=memberName(local.name)||'—';
-  $('memberDetailId').textContent=getMemberId(local)||'—';
-  const status=st(local);
-  $('memberDetailStatus').innerHTML=status[0]==='ok'?'<span class="badge ok">Active</span>':status[0]==='due'?'<span class="badge due">Renewal Due</span>':'<span class="badge exp">Expired</span>';
-
-  // Render all available member data immediately.
-  const vals=[];
-  vals.push(detailItem('Father Name',local.father_name||'—'));
-  vals.push(detailItem('Mobile',local.phone||local.mobile||'—'));
-  vals.push(detailItem('Gender',local.gender||'—'));
-  vals.push(detailItem('Blood Group',local.blood||'—'));
-  vals.push(detailItem('Membership Fee','₹'+Number(local.fee||0)));
-  vals.push(detailItem('Payment Date',fmt(local.paid)));
-  vals.push(detailItem('Validity',validityDate(local)?fmt(validityDate(local)):'—'));
-  vals.push(detailItem('Validity Months',validityMonths(local)>0?validityMonths(local)+' months':'—'));
-  if(admin) vals.push(detailItem('Date of Birth',fmtDOB(local.dob)));
-  vals.push(detailItem('Aadhaar',admin?String(local.aadhaar||'—'):'XXXX-XXXX-'+String(local.aadhaar||'').slice(-4)||'—'));
-  vals.push(detailItem('Address',local.address||'—'));
-  $('memberDetailGrid').innerHTML=vals.join('');
   modal.classList.add('show');
-
-  // Load the photo independently in the background.
-  const wrap=$('memberDetailPhotoWrap');
-  const showPhoto=(src)=>{
-    if(!src)return;
-    const img=document.createElement('img');
-    img.className='member-detail-photo';
-    img.alt='Member photo';
-    img.loading='eager';
-    img.decoding='async';
-    img.src=String(src);
-    let retried=false;
-    img.onerror=()=>{
-      if(!retried){
-        retried=true;
-        img.src=String(src)+(String(src).includes('?')?'&':'?')+'_retry='+Date.now();
-      }else{
-        wrap.innerHTML='👤';
-      }
-    };
-    wrap.innerHTML='';
-    wrap.appendChild(img);
-  };
-
-  if(local.photo){
-    showPhoto(local.photo);
-  }else{
-    try{
-      const data=await rest('/members?select=id,photo&id=eq.'+encodeURIComponent(id)+'&limit=1');
-      if(Array.isArray(data)&&data[0]&&data[0].photo){
-        local.photo=data[0].photo;
-        showPhoto(local.photo);
-      }
-    }catch(e){
-      console.warn('Member photo loading failed:',e.message);
+  try{
+    const m=await fetchMemberFresh(id);
+    if(!m){$('memberDetailStatus').innerHTML='<span class="badge exp">Member not found</span>';return;}
+    Object.assign(local,m);
+    const status=st(m);
+    $('memberDetailTitle').textContent='👤 Member Details';
+    $('memberDetailName').textContent=memberName(m.name)||'—';
+    $('memberDetailId').textContent=getMemberId(m)||'—';
+    $('memberDetailStatus').innerHTML=status[0]==='ok'?'<span class="badge ok">Active</span>':status[0]==='due'?'<span class="badge due">Renewal Due</span>':'<span class="badge exp">Expired</span>' ;
+    const wrap=$('memberDetailPhotoWrap');
+    if(m.photo){
+      const img=document.createElement('img'); img.className='member-detail-photo'; img.alt='Member photo'; img.src=String(m.photo);
+      let retried=false; img.onerror=()=>{ if(!retried){ retried=true; img.src=String(m.photo)+(String(m.photo).includes('?')?'&':'?')+'_retry='+Date.now(); return; } wrap.innerHTML='👤'; };
+      wrap.innerHTML=''; wrap.appendChild(img);
     }
+    const vals=[];
+    vals.push(detailItem('Father Name',m.father_name||'—'));
+    vals.push(detailItem('Mobile',m.phone||m.mobile));
+    vals.push(detailItem('Gender',m.gender||'—'));
+    vals.push(detailItem('Blood Group',m.blood));
+    vals.push(detailItem('Membership Fee','₹'+Number(m.fee||0)));
+    vals.push(detailItem('Payment Date',fmt(m.paid)));
+    vals.push(detailItem('Validity',validityDate(m)?fmt(validityDate(m)):'—'));
+    vals.push(detailItem('Validity Months',validityMonths(m)>0?validityMonths(m)+' months':'—'));
+    if(admin) vals.push(detailItem('Date of Birth',fmtDOB(m.dob)));
+    vals.push(detailItem('Aadhaar',admin?String(m.aadhaar||'—'):'XXXX-XXXX-'+String(m.aadhaar||'').slice(-4)||'—'));
+    vals.push(detailItem('Address',m.address));
+    $('memberDetailGrid').innerHTML=vals.join('');
+  }catch(e){
+    console.warn('Member details loading failed:',e.message);
+    $('memberDetailStatus').innerHTML='<span class="badge exp">Details could not be loaded</span>';
   }
 }
-
 $('photoViewerClose').onclick=closeMemberPhoto;
 $('rows').addEventListener('click',e=>{
   const name=e.target.closest('.member-name-link');
@@ -1689,7 +1647,7 @@ $('memberForm').onsubmit=async e=>{
 
 window.editM=async id=>{
   if(!admin)return;let m=members.find(x=>x.id===id);if(!m)return;
-  openTab('add');$('formTitle').textContent='Edit Member';$('eid').value=m.id;$('memberType').value=isDonor(m)?'donor':'regular';$('memberId').value=getMemberId(m)||nextMemberId($('memberType').value);$('name').value=memberName(m.name);$('phone').value=m.phone||'';$('aadhaar').value=m.aadhaar||'';$('dob').value=m.dob||'';$('gender').value=m.gender||'Male';$('blood').value=m.blood||'';$('fee').value=m.fee||100;$('paid').value=m.paid||'';$('address').value=m.address||'';memberPhoto='';$('memberPreview').removeAttribute('src');$('deleteMemberPhotoBtn').style.display='none';$('memberPhotoDeleteStatus').textContent='';
+  openTab('add');$('formTitle').textContent='Edit Member';$('eid').value=m.id;$('memberType').value=isDonor(m)?'donor':'regular';$('memberId').value=getMemberId(m)||nextMemberId($('memberType').value);$('name').value=memberName(m.name);$('fatherName').value=memberName(m.father_name||'');$('phone').value=m.phone||'';$('aadhaar').value=m.aadhaar||'';$('dob').value=m.dob||'';$('gender').value=m.gender||'Male';$('blood').value=m.blood||'';$('fee').value=m.fee||100;$('paid').value=m.paid||'';$('address').value=m.address||'';memberPhoto='';$('memberPreview').removeAttribute('src');$('deleteMemberPhotoBtn').style.display='none';$('memberPhotoDeleteStatus').textContent='';
   try{
     const d=await rest('/members?id=eq.'+encodeURIComponent(id)+'&select=photo&limit=1');
     memberPhoto=(Array.isArray(d)&&d[0]&&d[0].photo)||'';
@@ -1984,9 +1942,9 @@ $('deleteVoiceBtn').onclick=async()=>{
   try{
     // Persist the deletion immediately. It no longer depends on pressing Save Settings.
     const dbSettings={id:1,name:settings.name||'North Nilachal Sporting Center',reg:settings.reg||'S/1L/81249',logo:packMediaSettings(),pass:settings.pass||'1234'};
-    await rest('/settings?on_conflict=id',{
-      method:'POST',
-      headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
+    await rest('/settings?id=eq.1',{
+      method:'PATCH',
+      headers:{'Prefer':'return=minimal'},
       body:JSON.stringify(dbSettings)
     });
     saveFastCache();
@@ -2015,7 +1973,7 @@ $('settings').onsubmit=async e=>{
     // Save notice inside the existing settings.logo media bundle, so no new
     // Supabase column is required and every device receives the same notice.
     const dbSettings={id:1,name:settings.name,reg:settings.reg,logo:packMediaSettings(),pass:settings.pass};
-    await rest('/settings?on_conflict=id',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(dbSettings)});
+    await rest('/settings?id=eq.1',{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(dbSettings)});
     saveFastCache();
     apply();
     if($('voiceAdminPreview') && settings.voice){
