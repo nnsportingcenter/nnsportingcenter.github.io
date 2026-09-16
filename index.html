@@ -182,6 +182,7 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
     <h2>📝 Membership Application</h2>
     <form id="applicationForm" class="form" style="margin-top:15px">
       <label>Name *<input id="appName" class="input name-uppercase" required autocomplete="name" style="text-transform:uppercase"></label>
+      <label>Father Name *<input id="appFatherName" class="input name-uppercase" required autocomplete="name" style="text-transform:uppercase"></label>
       <label>Mobile *<input id="appPhone" class="input" required></label>
       <label>Aadhaar Number *<input id="appAadhaar" class="input" maxlength="12" inputmode="numeric" placeholder="12 digits" required></label>
       <label>Date of Birth *<input id="appDob" class="input" type="date" required></label>
@@ -962,7 +963,7 @@ function closeMemberPhoto(){
   if(img)img.removeAttribute('src');
 }
 async function fetchMemberFresh(id){
-  const fields='id,member_id,name,phone,mobile,aadhaar,dob,blood,fee,paid,validity_end,address,photo';
+  const fields='id,member_id,name,father_name,gender,phone,mobile,aadhaar,dob,blood,fee,paid,validity_end,address,photo';
   let last=null;
   for(let attempt=0;attempt<2;attempt++){
     try{
@@ -1003,6 +1004,7 @@ async function openMemberDetails(id){
       wrap.innerHTML=''; wrap.appendChild(img);
     }
     const vals=[];
+    vals.push(detailItem('Father Name',m.father_name||'—'));
     vals.push(detailItem('Mobile',m.phone||m.mobile));
     vals.push(detailItem('Gender',m.gender||'—'));
     vals.push(detailItem('Blood Group',m.blood));
@@ -1131,9 +1133,7 @@ function saveLocalNotice(){
 }
 
 async function loadData(){
-  // The connected Supabase members table currently has no `gender` column.
-  // Keep member loading independent of that optional field so the dashboard
-  // does not fail with: column members.gender does not exist.
+  // Member loading includes Father Name and Gender from the connected Supabase table.
 
   hideDiagnostic();
   clearError();
@@ -1144,10 +1144,10 @@ async function loadData(){
     let data;
     let firstError=null;
     try{
-      data=await rest('/members?select=id,memberid,member_id,name,phone,mobile,aadhaar,dob,blood,fee,paid,validity_end,address&order=name.asc&limit=200');
+      data=await rest('/members?select=id,memberid,member_id,name,father_name,gender,phone,mobile,aadhaar,dob,blood,fee,paid,validity_end,address&order=name.asc&limit=200');
     }catch(e){
       firstError=e;
-      data=await rest('/members?select=id,memberid,member_id,name,phone,mobile,fee,paid,validity_end,address&order=name.asc&limit=200');
+      data=await rest('/members?select=id,memberid,member_id,name,father_name,gender,phone,mobile,fee,paid,validity_end,address&order=name.asc&limit=200');
     }
     if(!Array.isArray(data)) throw new Error('Supabase returned an unexpected members response.');
     members=data.map(m=>{
@@ -1195,7 +1195,7 @@ async function loadApplications(){
   try{
     let data;
     try{
-      data=await rest('/membership_applications?select=id,name,father_name,phone,aadhaar,dob,blood,fee,paid,address,status,member_id,transaction_id,payment_time,created_at&order=created_at.desc');
+      data=await rest('/membership_applications?select=id,name,father_name,gender,phone,aadhaar,dob,blood,fee,paid,address,status,member_id,transaction_id,payment_time,created_at&order=created_at.desc');
     }catch(primaryErr){
       // Fallback for a temporarily stale PostgREST schema cache.
       data=await rest('/membership_applications?select=id,name,phone,aadhaar,dob,blood,fee,paid,address,status,member_id,payment_time,created_at&order=created_at.desc');
@@ -1224,7 +1224,7 @@ window.approveApplication=async id=>{
   // This keeps the Admin page fast and avoids downloading unused 100 KB photos.
   if(!Object.prototype.hasOwnProperty.call(a,'photo')){
     try{
-      const full=await rest('/membership_applications?id=eq.'+encodeURIComponent(id)+'&select=id,name,father_name,phone,aadhaar,dob,blood,fee,paid,address,photo,status,member_id,transaction_id,payment_time,created_at&limit=1');
+      const full=await rest('/membership_applications?id=eq.'+encodeURIComponent(id)+'&select=id,name,father_name,gender,phone,aadhaar,dob,blood,fee,paid,address,photo,status,member_id,transaction_id,payment_time,created_at&limit=1');
       if(Array.isArray(full)&&full[0]){ a={...a,...full[0]}; applications=applications.map(x=>x.id===id?a:x); }
     }catch(e){ return alert('Application details load failed: '+e.message); }
   }
@@ -1278,7 +1278,7 @@ window.approveApplication=async id=>{
   const memberFee=fee;
   const memberPaid=a.paid||todayISO();
   const memberValidity=memberFee>0?addMonths(memberPaid,validityMonths({fee:memberFee})):null;
-  const member={id:crypto.randomUUID(),member_id:newId,name:memberName(a.name),father_name:memberName(a.father_name||''),phone:a.phone||'',aadhaar:a.aadhaar||'',dob:a.dob||'',blood:a.blood||'',fee:memberFee,paid:memberPaid,validity_end:memberValidity,address:a.address||'',photo:a.photo||''};
+  const member={id:crypto.randomUUID(),member_id:newId,name:memberName(a.name),father_name:memberName(a.father_name||''),gender:a.gender||'',phone:a.phone||'',aadhaar:a.aadhaar||'',dob:a.dob||'',blood:a.blood||'',fee:memberFee,paid:memberPaid,validity_end:memberValidity,address:a.address||'',photo:a.photo||''};
   try{
     await rest('/members',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(member)});
     await rest('/membership_applications?id=eq.'+encodeURIComponent(id),{
@@ -1515,7 +1515,7 @@ $('applicationForm').onsubmit=async e=>{
     const memberType=($('memberType')?.value||'regular');
     const memberId=await nextMemberIdFresh(memberType);
     const paid=$('appPaid').value||todayISO();
-    const member={id:crypto.randomUUID(),member_id:memberId,name:memberName($('appName').value),father_name:'',phone:$('appPhone').value.trim(),aadhaar:a,dob:$('appDob').value,blood:$('appBlood').value,fee:paymentAmount,paid,validity_end:paymentAmount>0?addMonths(paid,validityMonths({fee:paymentAmount})):null,address:$('appAddress').value.trim(),photo:appPhotoData||''};
+    const member={id:crypto.randomUUID(),member_id:memberId,name:memberName($('appName').value),father_name:memberName($('appFatherName').value),gender:$('appGender').value,phone:$('appPhone').value.trim(),aadhaar:a,dob:$('appDob').value,blood:$('appBlood').value,fee:paymentAmount,paid,validity_end:paymentAmount>0?addMonths(paid,validityMonths({fee:paymentAmount})):null,address:$('appAddress').value.trim(),photo:appPhotoData||''};
     try{
       await rest('/members',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(member)});
       saveMemberType(member.id,'regular');
@@ -1532,7 +1532,7 @@ $('applicationForm').onsubmit=async e=>{
   if(paymentAmount<100)return alert('Minimum membership payment ₹100 করতে হবে');
   if(!window.appPaymentStarted || !window.appPaymentVerified)return alert('প্রথমে Pay Now করে payment সফলভাবে সম্পূর্ণ করুন');
   if(!txn)return alert('Payment verification সম্পূর্ণ হয়নি। অনুগ্রহ করে Pay Now করে আবার চেষ্টা করুন।');
-  const payload={name:memberName($('appName').value),father_name:'',phone:$('appPhone').value.trim(),aadhaar:a,dob:$('appDob').value,blood:$('appBlood').value,fee:paymentAmount,paid:($('appPaid').value||todayISO()),address:$('appAddress').value.trim(),photo:appPhotoData,status:'pending',transaction_id:txn,payment_time:(window.appPaymentTime||new Date().toISOString()),member_id:existingMemberId};
+  const payload={name:memberName($('appName').value),father_name:memberName($('appFatherName').value),gender:$('appGender').value,phone:$('appPhone').value.trim(),aadhaar:a,dob:$('appDob').value,blood:$('appBlood').value,fee:paymentAmount,paid:($('appPaid').value||todayISO()),address:$('appAddress').value.trim(),photo:appPhotoData,status:'pending',transaction_id:txn,payment_time:(window.appPaymentTime||new Date().toISOString()),member_id:existingMemberId};
   try{
     await rest('/membership_applications',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(payload)});
     $('applicationForm').reset();
@@ -1601,7 +1601,7 @@ $('memberForm').onsubmit=async e=>{
   const selectedFee=Number($('fee').value||0); const selectedPaid=selectedFee>0?$('paid').value:'';
   const existing=members.find(x=>x.id===id);
   const calculatedValidity=selectedFee>0&&selectedPaid?addMonths(selectedPaid,validityMonths({fee:selectedFee})):null;
-  let m={id,member_id:memberId,name:memberName($('name').value),father_name:memberName($('fatherName').value),phone:$('phone').value.trim(),aadhaar:a,dob:$('dob').value,blood:$('blood').value,fee:selectedFee,paid:selectedPaid,validity_end:calculatedValidity||existing?.validity_end||null,address:$('address').value.trim(),photo:memberPhoto};
+  let m={id,member_id:memberId,name:memberName($('name').value),father_name:memberName($('fatherName').value),gender:$('gender').value,phone:$('phone').value.trim(),aadhaar:a,dob:$('dob').value,blood:$('blood').value,fee:selectedFee,paid:selectedPaid,validity_end:calculatedValidity||existing?.validity_end||null,address:$('address').value.trim(),photo:memberPhoto};
   try{
     const old=members.some(x=>x.id===id);
     await rest('/members?id=eq.'+encodeURIComponent(id),{method:old?'PATCH':'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(old?m:m)});
