@@ -339,7 +339,7 @@ const RAZORPAY_FUNCTION='Create-payment';
 
 let members=[];
 let applications=[];
-let settings={name:'NORTH NILACHAL SPORTING CENTRE',reg:'S/1L/81249',logo:'',headerBg:'',headerBgOpacity:0.12,voice:'',voiceVolume:0.8,birthdayMusic:true,pass:'1234',notice:'নর্থ নীলাচল স্পোটিং সেন্টারের সকল সদস্যকে মেম্বারশিপের তথ্য যাচাই ও সময়মতো মেম্বারশিপ নবীকরণ করার জন্য অনুরোধ করা হচ্ছে।'};
+let settings={name:'NORTH NILACHAL SPORTING CENTRE',reg:'S/1L/81249',logo:'',headerBg:'',headerBgOpacity:0.12,voice:'',voiceVolume:0.8,birthdayMusic:true,pass:'Rakesh@123',notice:'নর্থ নীলাচল স্পোটিং সেন্টারের সকল সদস্যকে মেম্বারশিপের তথ্য যাচাই ও সময়মতো মেম্বারশিপ নবীকরণ করার জন্য অনুরোধ করা হচ্ছে।'};
 let admin=false,logoData='',memberPhoto='',appPhotoData='',renewId='',paymentId='';
 
 const $=x=>document.getElementById(x);
@@ -894,7 +894,15 @@ const photoLoadedIds=new Set();
 const photoLoadingIds=new Set();
 let photoQueue=[];
 let photoQueueTimer=null;
+let photoRenderToken=0;
 
+// Photos are stored separately from the member-list cache so the member table
+// opens quickly. The first visible group is fetched immediately, in parallel,
+// and later groups are fetched as the user scrolls.
+function markPhotoLoaded(id){
+  id=String(id||'');
+  if(id)photoLoadedIds.add(id);
+}
 function queueMemberPhoto(id){
   id=String(id||'');
   if(!id || photoLoadedIds.has(id) || photoLoadingIds.has(id) || photoQueue.includes(id))return;
@@ -902,74 +910,116 @@ function queueMemberPhoto(id){
   if(photoQueueTimer)return;
   photoQueueTimer=setTimeout(flushMemberPhotoQueue,0);
 }
-
-async function flushMemberPhotoQueue(){
-  photoQueueTimer=null;
-  const batch=photoQueue.splice(0,8);
+async function fetchPhotoBatch(batch){
   if(!batch.length)return;
   batch.forEach(id=>photoLoadingIds.add(id));
   try{
     const data=await rest('/members?select=id,photo&id=in.('+batch.join(',')+')');
+    const found=new Set();
     if(Array.isArray(data)) data.forEach(r=>{
       const id=String(r.id||'');
+      if(!id)return;
+      found.add(id);
       const mem=members.find(x=>String(x.id)===id);
-      if(r.photo){
-        if(mem)mem.photo=r.photo;
-        const el=document.querySelector('.member-photo[data-photo-id="'+id+'"]');
-        if(el){
-          const img=document.createElement('img'); img.src=String(r.photo); img.alt='Photo';
-          img.loading='eager';
-          img.onerror=()=>{ if(mem)mem.photo=''; el.innerHTML='👤'; photoLoadedIds.delete(id); };
-          el.innerHTML=''; el.appendChild(img);
-        }
-      }else if(mem){ mem.photo=''; photoLoadedIds.delete(id); }
-      else photoLoadedIds.delete(id);
+      const src=String(r.photo||'');
+      if(mem)mem.photo=src;
+      const el=document.querySelector('.member-photo[data-photo-id="'+id+'"]');
+      if(!el)return;
+      if(src){
+        const img=document.createElement('img');
+        img.alt='Photo';
+        img.decoding='async';
+        img.loading='eager';
+        img.fetchPriority='high';
+        let retried=false;
+        img.onload=()=>markPhotoLoaded(id);
+        img.onerror=()=>{
+          if(!retried){
+            retried=true;
+            img.src=src+(src.includes('?')?'&':'?')+'_retry='+Date.now();
+          }else{
+            if(mem)mem.photo='';
+            el.innerHTML='👤';
+            photoLoadedIds.delete(id);
+          }
+        };
+        el.replaceChildren(img);
+        img.src=src;
+      }else{
+        el.innerHTML='👤';
+        photoLoadedIds.delete(id);
+      }
     });
+    // IDs returned without a photo should not be retried forever.
+    batch.forEach(id=>{if(!found.has(id)){photoLoadedIds.delete(id);}});
   }catch(e){
     console.warn('Member photo loading skipped:',e.message);
-    // Do not permanently mark failed photos as loaded; they can be retried when visible/clicked.
-    batch.forEach(id=>photoLoadedIds.delete(id));
   }finally{
     batch.forEach(id=>photoLoadingIds.delete(id));
-    if(photoQueue.length && !photoQueueTimer)photoQueueTimer=setTimeout(flushMemberPhotoQueue,0);
   }
 }
-
+async function flushMemberPhotoQueue(){
+  photoQueueTimer=null;
+  if(!photoQueue.length)return;
+  // One request for the first 20 is fast enough on mobile. After that,
+  // process the next batch immediately instead of waiting for scrolling.
+  const batch=photoQueue.splice(0,20);
+  await fetchPhotoBatch(batch);
+  if(photoQueue.length&&!photoQueueTimer)photoQueueTimer=setTimeout(flushMemberPhotoQueue,0);
+}
 async function loadMemberPhotosDirect(list){
   const ids=(list||[]).map(m=>String(m.id||'')).filter(Boolean);
   if(!ids.length)return;
+  // Reliable fallback: fetch the photo column in one simple request.
+  // This avoids failures on some mobile browsers with long `id=in.(...)`
+  // URLs. Only the requested member IDs are applied to the page.
   try{
-    const data=await rest('/members?select=id,photo&id=in.('+ids.join(',')+')');
+    const data=await rest('/members?select=id,photo&limit=200');
     if(!Array.isArray(data))return;
+    const wanted=new Set(ids);
     data.forEach(r=>{
-      const id=String(r.id||''), src=String(r.photo||'');
+      const id=String(r.id||'');
+      if(!wanted.has(id))return;
+      const src=String(r.photo||'');
       const mem=members.find(x=>String(x.id)===id);
       if(mem)mem.photo=src;
       const el=document.querySelector('.member-photo[data-photo-id="'+id+'"]');
-      if(el&&src){
-        const img=document.createElement('img');
-        img.alt='Member photo'; img.loading='eager'; img.src=src;
-        img.onerror=()=>{el.innerHTML='👤';};
-        el.replaceChildren(img);
-      }
+      if(!el||!src)return;
+      const img=document.createElement('img');
+      img.alt='Member photo'; img.loading='eager'; img.decoding='async'; img.fetchPriority='high';
+      img.onload=()=>markPhotoLoaded(id);
+      img.onerror=()=>{el.innerHTML='👤';photoLoadedIds.delete(id);};
+      img.src=src;
+      el.replaceChildren(img);
     });
   }catch(e){console.warn('Direct member photo load failed:',e.message);}
 }
-
 function loadMemberPhotosFast(list){
+  photoRenderToken++;
   if(photoObserver)photoObserver.disconnect();
+  const token=photoRenderToken;
   photoObserver=new IntersectionObserver(entries=>{
+    if(token!==photoRenderToken)return;
     entries.forEach(entry=>{
       if(!entry.isIntersecting)return;
       const id=entry.target.getAttribute('data-photo-id');
       queueMemberPhoto(id);
       photoObserver.unobserve(entry.target);
     });
-  },{rootMargin:'600px 0px'});
-  document.querySelectorAll('.member-photo[data-photo-id]').forEach(el=>{
+  },{rootMargin:'1800px 0px'});
+  const photoEls=Array.from(document.querySelectorAll('.member-photo[data-photo-id]'));
+  // Start a reliable direct photo fetch immediately for the currently rendered list.
+  // The table remains usable while images arrive.
+  loadMemberPhotosDirect(list||[]);
+  photoEls.forEach((el,index)=>{
+    const id=el.getAttribute('data-photo-id')||'';
     const img=el.querySelector('img');
     if(img){
+      img.decoding='async';
+      img.loading='eager';
+      img.fetchPriority=index<20?'high':'auto';
       let retried=false;
+      img.onload=()=>markPhotoLoaded(id);
       img.onerror=()=>{
         if(!retried){
           retried=true;
@@ -977,15 +1027,20 @@ function loadMemberPhotosFast(list){
           img.src=src+(src.includes('?')?'&':'?')+'_retry='+Date.now();
         }else{
           el.innerHTML='👤';
-          photoLoadedIds.delete(el.getAttribute('data-photo-id')||'');
-          queueMemberPhoto(el.getAttribute('data-photo-id')||'');
+          photoLoadedIds.delete(id);
         }
       };
+      // If the row already contains a photo URL, let the browser load it
+      // directly; do not request it again from Supabase.
+      if(img.complete&&img.naturalWidth>0)markPhotoLoaded(id);
+    }else if(index<20){
+      // Direct loader above handles the first rendered group immediately.
+      // Keep the queue as a fallback if a photo is still missing.
+      setTimeout(()=>{if(!photoLoadedIds.has(id))queueMemberPhoto(id);},5000);
     }
     photoObserver.observe(el);
   });
 }
-
 function closeMemberPhoto(){
   const v=$('photoViewer');
   if(v)v.classList.remove('show');
@@ -1104,7 +1159,20 @@ $('doLogin').onclick=()=>doLogin();
 $('loginPass').onkeydown=e=>{if(e.key==='Enter')doLogin()};
 async function doLogin(){
   const p=$('loginPass').value;
-  if(p===String(settings.pass||'1234')){
+
+  // Always refresh the Admin password from Supabase before checking it.
+  // This keeps login consistent across phone, tablet and computer and
+  // prevents an old localStorage value from overriding the database value.
+  try{
+    const s=await rest('/settings?id=eq.1&select=pass&limit=1');
+    if(Array.isArray(s)&&s[0]&&Object.prototype.hasOwnProperty.call(s[0],'pass')){
+      settings.pass=String(s[0].pass||'Rakesh@123');
+    }
+  }catch(e){
+    console.warn('Admin password refresh failed:',e.message);
+  }
+
+  if(p===String(settings.pass||'Rakesh@123')){
     admin=true;$('login').classList.remove('show');$('addBtn').style.display='inline-block';$('adminDownloads').style.display='block';
     openTab('admin');apply();rows();renderApplications();
     await loadApplications();
@@ -1633,7 +1701,7 @@ $('memberForm').onsubmit=async e=>{
   const selectedFee=Number($('fee').value||0); const selectedPaid=selectedFee>0?$('paid').value:'';
   const existing=members.find(x=>x.id===id);
   const calculatedValidity=selectedFee>0&&selectedPaid?addMonths(selectedPaid,validityMonths({fee:selectedFee})):null;
-  let m={id,member_id:memberId,name:memberName($('name').value),father_name:memberName($('fatherName').value),gender:$('gender').value,phone:$('phone').value.trim(),aadhaar:a,dob:$('dob').value,blood:$('blood').value,fee:selectedFee,paid:selectedPaid,validity_end:calculatedValidity||existing?.validity_end||null,address:$('address').value.trim(),photo:memberPhoto};
+  let m={id,member_id:memberId,name:memberName($('name').value),father_name:memberName($('fatherName').value),gender:$('gender').value,phone:$('phone').value.trim(),aadhaar:a,dob:$('dob').value,blood:$('blood').value,fee:selectedFee,paid:selectedPaid,validity_end:calculatedValidity||existing?.validity_end||null,address:$('address').value.trim(),photo:memberPhoto||existing?.photo||''};
   try{
     const old=members.some(x=>x.id===id);
     await rest('/members?id=eq.'+encodeURIComponent(id),{method:old?'PATCH':'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(old?m:m)});
@@ -1646,16 +1714,50 @@ $('memberForm').onsubmit=async e=>{
 };
 
 window.editM=async id=>{
-  if(!admin)return;let m=members.find(x=>x.id===id);if(!m)return;
-  openTab('add');$('formTitle').textContent='Edit Member';$('eid').value=m.id;$('memberType').value=isDonor(m)?'donor':'regular';$('memberId').value=getMemberId(m)||nextMemberId($('memberType').value);$('name').value=memberName(m.name);$('fatherName').value=memberName(m.father_name||'');$('phone').value=m.phone||'';$('aadhaar').value=m.aadhaar||'';$('dob').value=m.dob||'';$('gender').value=m.gender||'Male';$('blood').value=m.blood||'';$('fee').value=m.fee||100;$('paid').value=m.paid||'';$('address').value=m.address||'';memberPhoto='';$('memberPreview').removeAttribute('src');$('deleteMemberPhotoBtn').style.display='none';$('memberPhotoDeleteStatus').textContent='';
+  if(!admin)return;
+
+  // Always fetch the complete member row before opening Edit.
+  // The Members page may use a fast local cache; that cache must never be
+  // allowed to replace a saved Father Name with an empty value.
+  let m=members.find(x=>String(x.id)===String(id));
+  if(!m)return;
+
   try{
-    const d=await rest('/members?id=eq.'+encodeURIComponent(id)+'&select=photo&limit=1');
-    memberPhoto=(Array.isArray(d)&&d[0]&&d[0].photo)||'';
-    if(memberPhoto){
-      $('memberPreview').src=memberPhoto;
-      $('deleteMemberPhotoBtn').style.display='inline-block';
+    const fresh=await fetchMemberFresh(id);
+    if(fresh){
+      m=Object.assign({},m,fresh);
+      const idx=members.findIndex(x=>String(x.id)===String(id));
+      if(idx>=0)members[idx]=m;
     }
-  }catch(e){console.warn('Photo load skipped:',e.message);}
+  }catch(e){
+    console.warn('Fresh member load for edit failed:',e.message);
+  }
+
+  openTab('add');
+  $('formTitle').textContent='Edit Member';
+  $('eid').value=m.id;
+  $('memberType').value=isDonor(m)?'donor':'regular';
+  $('memberId').value=getMemberId(m)||nextMemberId($('memberType').value);
+  $('name').value=memberName(m.name);
+  $('fatherName').value=memberName(m.father_name||'');
+  $('phone').value=m.phone||m.mobile||'';
+  $('aadhaar').value=m.aadhaar||'';
+  $('dob').value=m.dob||'';
+  $('gender').value=m.gender||'Male';
+  $('blood').value=m.blood||'';
+  $('fee').value=m.fee||100;
+  $('paid').value=m.paid||'';
+  $('address').value=m.address||'';
+
+  memberPhoto=String(m.photo||'');
+  $('memberPreview').removeAttribute('src');
+  $('deleteMemberPhotoBtn').style.display='none';
+  $('memberPhotoDeleteStatus').textContent='';
+
+  if(memberPhoto){
+    $('memberPreview').src=memberPhoto;
+    $('deleteMemberPhotoBtn').style.display='inline-block';
+  }
 };
 window.delM=async id=>{
   if(!admin||!confirm('Delete this member?'))return;
