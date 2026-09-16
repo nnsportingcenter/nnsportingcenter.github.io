@@ -327,6 +327,9 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
 <div id="renew" class="modal"><div class="box"><h2>🔄 Membership Renewal</h2><p id="renewText"></p><label>Membership Plan<select id="renewPlan" class="input"><option value="100">₹100 — 1 Month</option><option value="200">₹200 — 2 Months</option><option value="300">₹300 — 3 Months</option><option value="400">₹400 — 4 Months</option><option value="500">₹500 — 5 Months</option><option value="1000">₹1000 — 12 Months (1 Year)</option></select></label><label>Renewal Month<input id="renewMonth" class="input" type="month" min="2026-06"></label><small style="display:block;color:#667;margin-top:5px">📅 Membership renewal মাস অনুযায়ী হবে, নির্দিষ্ট Date অনুযায়ী নয়। ডিফল্টে বর্তমান মাস নির্বাচিত থাকবে।</small><div class="actions"><button id="closeRenew" class="btn light">Cancel</button><button id="doRenew" class="btn green">Renew</button></div></div></div>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
+/* NNSC_PUBLIC_SETTINGS_RPC_PATCH_2026_09_17 */
+</script>
+<script>
 /* North Nilachal Membership System
    Robust version: navigation/admin work even if the Supabase JS CDN is unavailable.
    Database access uses Supabase REST directly.
@@ -729,8 +732,12 @@ function apply(){
   const logoEl=$('siteLogo');
   if(logoEl){
     const logoSrc=String(settings.logo||'').trim();
+    logoEl.decoding='async';
+    logoEl.loading='eager';
     logoEl.onerror=()=>{
-      if(logoSrc && !logoEl.dataset.retry){
+      // A data: URL cannot accept a query-string retry suffix. For a normal
+      // remote URL, one cache-busting retry is still useful.
+      if(logoSrc && !/^data:image\//i.test(logoSrc) && !logoEl.dataset.retry){
         logoEl.dataset.retry='1';
         logoEl.src=logoSrc+(logoSrc.includes('?')?'&':'?')+'_logo_retry='+Date.now();
       }
@@ -1124,10 +1131,14 @@ async function doLogin(){
   if(!p){$('loginErr').textContent='Enter password';return;}
   $('loginErr').textContent='Checking...';
   try{
-    const fresh=await rest('/settings?id=eq.1&select=pass&limit=1');
-    const dbPass=Array.isArray(fresh)&&fresh[0] ? String(fresh[0].pass||'') : '';
-    if(dbPass && p===dbPass){
-      settings.pass=dbPass;
+    const result=await rest('/rpc/verify_admin_password',{
+      method:'POST',
+      body:JSON.stringify({p_password:p})
+    });
+    const ok=result===true || result==='true';
+    if(ok){
+      // Never download or cache the real admin password in the browser.
+      settings.pass=p;
       admin=true;$('login').classList.remove('show');$('addBtn').style.display='inline-block';$('adminDownloads').style.display='block';
       openTab('admin');apply();rows();renderApplications();
       await loadApplications();
@@ -1240,9 +1251,13 @@ async function loadData(){
     setLoading(false);
   }
 
-  // Settings are optional; member data must never wait for settings.
-  rest('/settings?id=eq.1&select=*&limit=1').then(s=>{
-    if(Array.isArray(s)&&s[0]) settings={...settings,...s[0]};
+  // Public site settings are loaded through a safe RPC. The old settings table
+  // intentionally does not expose the admin password to anonymous visitors.
+  rest('/rpc/get_public_settings',{
+    method:'POST',
+    body:JSON.stringify({})
+  }).then(s=>{
+    if(s && typeof s==='object') settings={...settings,...s};
     unpackMediaSettings(); apply(); saveFastCache();
   }).catch(e=>{
     loadLocalNotice();
