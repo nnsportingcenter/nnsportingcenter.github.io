@@ -762,7 +762,7 @@ function apply(){
     $('scrollNoticeText').textContent=noticeText||'';
     $('scrollNoticeText').style.display=noticeText?'inline-block':'none';
   }
-  const pujaCard=$('durgaPujaCard');if(pujaCard){pujaCard.style.display='block';pujaCard.onclick=()=>{const link=String(settings.durgaPujaLink||'').trim();if(link){window.open(link,'_blank','noopener,noreferrer')}else{alert('দুর্গাপূজার লিংক এখনও যোগ করা হয়নি। Admin Settings থেকে লিংক দিন।')}};pujaCard.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pujaCard.click();}};}
+  const pujaCard=$('durgaPujaCard');if(pujaCard){pujaCard.style.display='block';pujaCard.onclick=async()=>{let link=String(settings.durgaPujaLink||'').trim();if(!link){try{const latest=await rest('/rpc/get_public_settings',{method:'POST',body:JSON.stringify({})});if(latest&&typeof latest==='object'){settings={...settings,...latest};unpackMediaSettings();link=String(settings.durgaPujaLink||'').trim();}}catch(err){console.warn('Durga Puja link refresh failed:',err);}}if(link){window.location.href=link;}else{alert('দুর্গাপূজার লিংক এখনও যোগ করা হয়নি। Admin Settings থেকে লিংক দিন।')}};pujaCard.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pujaCard.click();}};}
   applyVoice();
   if(admin){
     $('clubName').value=settings.name||'North Nilachal Sporting Center';
@@ -2068,6 +2068,11 @@ $('settings').onsubmit=async e=>{
     // Supabase column is required and every device receives the same notice.
     const dbSettings={id:1,name:settings.name,reg:settings.reg,logo:packMediaSettings(),pass:settings.pass};
     await rest('/settings?id=eq.1',{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(dbSettings)});
+    // Confirm the public settings endpoint can read the newly saved link.
+    try{
+      const verify=await rest('/rpc/get_public_settings',{method:'POST',body:JSON.stringify({})});
+      if(verify&&typeof verify==='object'){settings={...settings,...verify};unpackMediaSettings();}
+    }catch(verifyErr){console.warn('Settings save verification failed:',verifyErr);}
     saveFastCache();
     apply();
     if($('voiceAdminPreview') && settings.voice){
