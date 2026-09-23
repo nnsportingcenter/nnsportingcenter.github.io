@@ -685,7 +685,7 @@ async function nextMemberIdFresh(type='regular'){
 }
 
 function unpackMediaSettings(){
-  const raw=String(settings.logo||'');
+  const raw=typeof settings.logo==='string'?settings.logo:(settings.logo&&typeof settings.logo==='object'?JSON.stringify(settings.logo):String(settings.logo||''));
   if(raw.startsWith('{') && raw.includes('"__nnsc_media"')){
     try{
       const b=JSON.parse(raw);
@@ -762,7 +762,7 @@ function apply(){
     $('scrollNoticeText').textContent=noticeText||'';
     $('scrollNoticeText').style.display=noticeText?'inline-block':'none';
   }
-  const pujaCard=$('durgaPujaCard');if(pujaCard){const link=String(settings.durgaPujaLink||'').trim();pujaCard.style.display='block';pujaCard.onclick=()=>{if(link){window.open(link,'_blank','noopener,noreferrer')}else{alert('দুর্গাপূজার লিংক এখনও যোগ করা হয়নি। Admin Settings থেকে লিংক দিন।')}};pujaCard.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pujaCard.click();}};}
+  const pujaCard=$('durgaPujaCard');if(pujaCard){pujaCard.style.display='block';pujaCard.onclick=()=>{const link=String(settings.durgaPujaLink||'').trim();if(link){window.open(link,'_blank','noopener,noreferrer')}else{alert('দুর্গাপূজার লিংক এখনও যোগ করা হয়নি। Admin Settings থেকে লিংক দিন।')}};pujaCard.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pujaCard.click();}};}
   applyVoice();
   if(admin){
     $('clubName').value=settings.name||'North Nilachal Sporting Center';
@@ -1263,7 +1263,11 @@ async function loadData(){
     method:'POST',
     body:JSON.stringify({})
   }).then(s=>{
-    if(s && typeof s==='object') settings={...settings,...s};
+    if(s && typeof s==='object'){
+      settings={...settings,...s};
+      // Some RPC versions may expose the Durga Puja URL separately.
+      if(Object.prototype.hasOwnProperty.call(s,'durgaPujaLink')) settings.durgaPujaLink=String(s.durgaPujaLink||'');
+    }
     unpackMediaSettings(); apply(); saveFastCache();
   }).catch(e=>{
     loadLocalNotice();
