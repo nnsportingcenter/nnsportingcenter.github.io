@@ -696,8 +696,15 @@ function unpackMediaSettings(){
 function packMediaSettings(){
   return JSON.stringify({__nnsc_media:1,logo:settings.logo||'',headerBg:settings.headerBg||'',headerBgOpacity:(typeof settings.headerBgOpacity==='number'?Math.max(0.03,Math.min(0.35,settings.headerBgOpacity)):0.12),voice:settings.voice||'',voiceVolume:(typeof settings.voiceVolume==='number'?Math.max(0,Math.min(1,settings.voiceVolume)):0.8),birthdayMusic:settings.birthdayMusic!==false,notice:settings.notice||'',durgaPujaLink:settings.durgaPujaLink||''});
 }
+function normalizePublicSettings(payload){
+  // Supabase RPC/PostgREST may return one row as an array.
+  if(Array.isArray(payload)) return payload.length && payload[0] && typeof payload[0]==='object' ? payload[0] : {};
+  if(payload && typeof payload==='object' && payload.data && Array.isArray(payload.data)) return payload.data.length && payload.data[0] && typeof payload.data[0]==='object' ? payload.data[0] : {};
+  return payload && typeof payload==='object' ? payload : {};
+}
 function extractDurgaPujaLink(payload){
   try{
+    payload=normalizePublicSettings(payload);
     if(payload && typeof payload==='object' && Object.prototype.hasOwnProperty.call(payload,'durgaPujaLink')){
       const direct=String(payload.durgaPujaLink||'').trim();
       if(direct)return direct;
@@ -1278,10 +1285,11 @@ async function loadData(){
     method:'POST',
     body:JSON.stringify({})
   }).then(s=>{
-    if(s && typeof s==='object'){
-      settings={...settings,...s};
+    const publicSettings=normalizePublicSettings(s);
+    if(publicSettings && typeof publicSettings==='object'){
+      settings={...settings,...publicSettings};
       // Some RPC versions may expose the Durga Puja URL separately.
-      if(Object.prototype.hasOwnProperty.call(s,'durgaPujaLink')) settings.durgaPujaLink=String(s.durgaPujaLink||'');
+      if(Object.prototype.hasOwnProperty.call(publicSettings,'durgaPujaLink')) settings.durgaPujaLink=String(publicSettings.durgaPujaLink||'');
     }
     unpackMediaSettings(); apply(); saveFastCache();
   }).catch(e=>{
@@ -2083,6 +2091,15 @@ $('settings').onsubmit=async e=>{
     // Supabase column is required and every device receives the same notice.
     const dbSettings={id:1,name:settings.name,reg:settings.reg,logo:packMediaSettings(),pass:settings.pass};
     await rest('/settings?id=eq.1',{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(dbSettings)});
+    // Confirm the packed value was accepted by the database when the endpoint permits a read.
+    try{
+      const check=await rest('/settings?id=eq.1&select=logo',{method:'GET'});
+      const row=Array.isArray(check)?check[0]:check;
+      const confirmed=extractDurgaPujaLink(row);
+      if(settings.durgaPujaLink && confirmed && confirmed!==settings.durgaPujaLink) throw new Error('Saved Durga Puja link could not be verified.');
+    }catch(verifyErr){
+      console.warn('Settings save verification skipped:',verifyErr.message||verifyErr);
+    }
     // Do not overwrite the freshly saved settings with a possibly cached RPC response.
     // The packed logo bundle already contains durgaPujaLink and is kept in local cache
     // until the next normal public settings load.
