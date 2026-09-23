@@ -705,6 +705,10 @@ function normalizePublicSettings(payload){
 function extractDurgaPujaLink(payload){
   try{
     payload=normalizePublicSettings(payload);
+    if(payload && typeof payload==='object' && Object.prototype.hasOwnProperty.call(payload,'durga_puja_link')){
+      const directColumn=String(payload.durga_puja_link||'').trim();
+      if(directColumn)return directColumn;
+    }
     if(payload && typeof payload==='object' && Object.prototype.hasOwnProperty.call(payload,'durgaPujaLink')){
       const direct=String(payload.durgaPujaLink||'').trim();
       if(direct)return direct;
@@ -2058,7 +2062,7 @@ $('deleteVoiceBtn').onclick=async()=>{
 
   try{
     // Persist the deletion immediately. It no longer depends on pressing Save Settings.
-    const dbSettings={id:1,name:settings.name||'North Nilachal Sporting Center',reg:settings.reg||'S/1L/81249',logo:packMediaSettings(),pass:settings.pass||'1234'};
+    const dbSettings={id:1,name:settings.name||'North Nilachal Sporting Center',reg:settings.reg||'S/1L/81249',logo:packMediaSettings(),durga_puja_link:settings.durgaPujaLink||'',pass:settings.pass||'1234'};
     await rest('/settings?id=eq.1',{
       method:'PATCH',
       headers:{'Prefer':'return=minimal'},
@@ -2089,13 +2093,13 @@ $('settings').onsubmit=async e=>{
     // otherwise a deleted audio value can be restored from the old packed logo.
     // Save notice inside the existing settings.logo media bundle, so no new
     // Supabase column is required and every device receives the same notice.
-    const dbSettings={id:1,name:settings.name,reg:settings.reg,logo:packMediaSettings(),pass:settings.pass};
+    const dbSettings={id:1,name:settings.name,reg:settings.reg,logo:packMediaSettings(),durga_puja_link:settings.durgaPujaLink||'',pass:settings.pass};
     await rest('/settings?id=eq.1',{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(dbSettings)});
     // Confirm the packed value was accepted by the database when the endpoint permits a read.
     try{
-      const check=await rest('/settings?id=eq.1&select=logo',{method:'GET'});
+      const check=await rest('/settings?id=eq.1&select=logo,durga_puja_link',{method:'GET'});
       const row=Array.isArray(check)?check[0]:check;
-      const confirmed=extractDurgaPujaLink(row);
+      const confirmed=String((row&&row.durga_puja_link)||extractDurgaPujaLink(row)||'').trim();
       if(settings.durgaPujaLink && confirmed && confirmed!==settings.durgaPujaLink) throw new Error('Saved Durga Puja link could not be verified.');
     }catch(verifyErr){
       console.warn('Settings save verification skipped:',verifyErr.message||verifyErr);
