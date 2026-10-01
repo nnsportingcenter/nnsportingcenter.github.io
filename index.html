@@ -453,10 +453,14 @@ function setDefaultPaymentDates(){
 // After May 2027, the next cycle automatically starts June 2027,
 // and the same June-to-May cycle continues every year.
 function currentMembershipCycleStart(){
+  // Club membership cycles are anchored to June 2026.
+  // A new membership always starts from the current June-to-May cycle,
+  // never from the payment/form date.
   const now=new Date();
-  const y=now.getFullYear();
-  const startYear=(now.getMonth()>=5)?y:y-1; // June = month 5
-  return String(startYear)+'-06-01';
+  const anchorYear=2026, anchorMonth=5; // June 2026
+  const currentMonthIndex=(now.getFullYear()-anchorYear)*12 + (now.getMonth()-anchorMonth);
+  const cycleNumber=Math.max(0,Math.floor(currentMonthIndex/12));
+  return String(anchorYear+cycleNumber)+'-06-01';
 }
 function initialMembershipStart(){ return currentMembershipCycleStart(); }
 function initialMembershipEnd(fee){
@@ -1795,7 +1799,12 @@ $('memberForm').onsubmit=async e=>{
   $('memberId').value=memberId;
   const selectedFee=Number($('fee').value||0); const selectedPaid=selectedFee>0?$('paid').value:'';
   const existing=members.find(x=>x.id===id);
-  const calculatedValidity=selectedFee>0&&selectedPaid?addMonths(selectedPaid,validityMonths({fee:selectedFee})):null;
+  // Initial membership always starts from the club's June cycle, regardless of when payment/form is submitted.
+  // Only a renewal of an existing member is allowed to extend from the current validity end.
+  // The Member Form is for creating/correcting the membership record.
+  // Its validity is ALWAYS calculated from the June cycle. Renewal/extension
+  // is handled separately by the Renewal/Payment flow.
+  const calculatedValidity = selectedFee>0 ? initialMembershipEnd(selectedFee) : null;
   let m={id,member_id:memberId,name:memberName($('name').value),father_name:memberName($('fatherName').value),gender:$('gender').value,phone:$('phone').value.trim(),aadhaar:a,dob:$('dob').value,blood:$('blood').value,fee:selectedFee,paid:selectedPaid,validity_end:calculatedValidity||existing?.validity_end||null,address:$('address').value.trim(),photo:memberPhoto};
   try{
     const old=members.some(x=>x.id===id);
@@ -2691,13 +2700,29 @@ loadData();
       requestAnimationFrame(()=>lock=false);
     },{passive:true});
     const refresh=()=>{syncHeader();syncWidth();};
+    // Always open the member list from the left edge so the first columns
+    // (Photo / Member ID / Name) are never clipped on mobile.
+    const resetMemberScroll=()=>{
+      wrap.scrollLeft=0;
+      top.scrollLeft=0;
+    };
     refresh();
+    requestAnimationFrame(()=>resetMemberScroll());
     window.addEventListener('resize',refresh,{passive:true});
     window.addEventListener('orientationchange',()=>setTimeout(refresh,100),{passive:true});
     const obs=new MutationObserver(()=>requestAnimationFrame(syncWidth));
     obs.observe(wrap,{childList:true,subtree:true});
     document.querySelectorAll('nav button').forEach(b=>
-      b.addEventListener('click',()=>setTimeout(refresh,80))
+      b.addEventListener('click',()=>{
+        setTimeout(()=>{
+          refresh();
+          // When Members is opened, start at the first column.
+          const membersSection=document.getElementById('members');
+          if(membersSection && membersSection.classList.contains('active')){
+            resetMemberScroll();
+          }
+        },80);
+      })
     );
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setupMemberScrollbar);
