@@ -92,7 +92,9 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
   #all-member-print-root .member-form-page:last-child{page-break-after:auto}
 }
 @media screen{
-  #all-member-print-root{display:none}
+  /* html2pdf runs on screen, so the print root must be rendered for capture.
+     Keep it off-screen instead of display:none (which produced a blank PDF). */
+  #all-member-print-root{display:block!important;position:absolute;left:0;top:0;width:794px;max-width:794px;min-height:1123px;background:#fff;color:#111;visibility:visible;z-index:-1;opacity:1;pointer-events:none;overflow:visible;padding:0;margin:0}
 }
 </style>
 
@@ -149,7 +151,7 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
     <h2>💳 Membership Plans & Pricing</h2>
     <p style="line-height:1.7;color:#52606d">
       NORTH NILACHAL SPORTING CENTRE-এর সদস্যপদ গ্রহণ ও নবীকরণের জন্য নিচের Membership Plans উপলব্ধ।
-      Membership fee অনুযায়ী সংশ্লিষ্ট সময়ের membership validity প্রদান করা হয়।
+      Membership fee অনুযায়ী সংশ্লিষ্ট সময়ের membership validity প্রদান করা হয়। <b>সকল নতুন সদস্যের validity/active month June 2026 থেকে শুরু হবে; form fill-up বা payment date কখনও initial start month বদলাবে না।</b>
     </p>
 
     <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-top:15px">
@@ -233,6 +235,30 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
   </div>
 </div>
 
+<div id="adminViewAnalytics" class="card" style="display:none">
+  <h2>👁️ Website Views</h2>
+  <p class="hint">Admin Login থেকে Website-এর visitor/view count দেখা যাবে। Day-wise, Month-wise এবং All-Time Total.</p>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px">
+    <div style="padding:16px;border-radius:14px;background:#f4f8ff;text-align:center;border:1px solid #dbe7f5">
+      <div style="font-size:13px;color:#667">আজকের Views</div>
+      <div id="viewsToday" style="font-size:28px;font-weight:800;margin-top:5px">0</div>
+      <div id="viewsTodayDate" style="font-size:11px;color:#888;margin-top:3px"></div>
+    </div>
+    <div style="padding:16px;border-radius:14px;background:#f4fff7;text-align:center;border:1px solid #d9f0df">
+      <div style="font-size:13px;color:#667">এই মাসের Views</div>
+      <div id="viewsMonth" style="font-size:28px;font-weight:800;margin-top:5px">0</div>
+      <div id="viewsMonthName" style="font-size:11px;color:#888;margin-top:3px"></div>
+    </div>
+    <div style="padding:16px;border-radius:14px;background:#fff8ef;text-align:center;border:1px solid #f0dfc7">
+      <div style="font-size:13px;color:#667">Total Views</div>
+      <div id="viewsTotal" style="font-size:28px;font-weight:800;margin-top:5px">0</div>
+      <div style="font-size:11px;color:#888;margin-top:3px">All Time</div>
+    </div>
+  </div>
+  <div class="actions" style="justify-content:flex-start;margin-top:12px">
+    <button type="button" id="refreshViewAnalytics" class="btn light">🔄 Refresh Views</button>
+  </div>
+</div>
 <div id="adminDownloads" class="card" style="display:none">
   <h2>🆔 Member IDs & Download Forms</h2>
   <p class="hint">এখান থেকে সকল Approved Members-এর Application Form একসঙ্গে Print / Save as PDF করা যাবে।</p>
@@ -244,7 +270,7 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
   <small style="display:block;margin-top:8px;color:#667">প্রতিটি সদস্যের জন্য আলাদা A4 Application Form তৈরি হবে। Donor Member হলে ফর্মে Donor Member (D) উল্লেখ থাকবে এবং Member ID-তে D code থাকবে। ছবি সর্বোচ্চ 100 KB; Members page দ্রুত রাখার জন্য ছবি প্রয়োজন হলে তবেই load হবে।</small>
 </div>
 <div class="card"><h2>📝 Admin Direct Member Add</h2><p class="hint">🔐 <b>Admin Login অবস্থায়</b> আপনি যাকে ইচ্ছা নতুন Member হিসেবে সরাসরি যোগ করতে পারবেন। <b>কোনও Online Payment, Pay Now, UTR বা Transaction ID-এর প্রয়োজন নেই।</b> Form Save করলেই Member সরাসরি Member List-এ যুক্ত হবে এবং পরবর্তী serial অনুযায়ী Member ID তৈরি হবে।</p><div class="actions" style="justify-content:flex-start"><button type="button" id="adminFillMembershipBtn" class="btn primary">➕ Add New Member (Admin — No Payment)</button></div></div>
-<div class="card"><h2>Admin Member Management</h2><p class="hint">🔐 শুধুমাত্র Admin Login করার পরই Member Add করা যাবে। Admin চাইলে কোনো payment ছাড়াই Member তৈরি করতে পারবেন এবং পরে সদস্যের Payment/Renewal নেওয়া যাবে।</p><p>Member list থেকে Edit, Delete ও Renewal করা যাবে।</p><p class="hint">Membership validity: প্রতি মাসে ₹100। একজন সদস্য যত টাকা জমা দেবেন, ₹100 করে তত মাস Membership Validity থাকবে। Membership June 2026 থেকে শুরু হয়েছে।</p><p class="hint">নোট: সাধারণ সদস্যরা Date of Birth দেখতে পারবে না। শুধুমাত্র Admin Member Management-এ সম্পূর্ণ Date of Birth দেখা যাবে। Member list-এর serial একটাই ধারাবাহিক সিরিজে থাকবে এবং Regular/Donor দুজনের জন্য একই serial পুনরায় ব্যবহার হবে না। Regular ↔ Donor পরিবর্তন করলে সেই সদস্যের বর্তমান serial অপরিবর্তিত থাকবে; শুধু Donor হলে ID-তে D যোগ হবে, Regular করলে D চলে যাবে। যেমন NNSC0626021 ↔ NNSCD0626021। পুরনো database-এ একই serial-এর duplicate থাকলে শুধু সেই legacy duplicate Donor record একবার পরবর্তী unused serial-এ সরানো হবে; conversion-এর সময় কোনো serial বদলাবে না। Admin Member Type থেকে কে Donor Member হবেন তা নির্ধারণ করবেন; Donor ID-র D code দিয়েই Donor চিহ্নিত হবে, তাই আলাদা database column প্রয়োজন নেই।</p></div></section>
+</section>
 <section id="add" class="section"><div class="card"><h2 id="formTitle">New Member</h2><form id="memberForm" class="form"><input type="hidden" id="eid"><label>Member ID *<input id="memberId" class="input" placeholder="NNSC0626001 / NNSCD0626001" required readonly></label><label><span>Member Type</span><select id="memberType" class="input"><option value="regular">Regular Member</option><option value="donor">Donor Member (D)</option></select><small style="display:block;color:#667;margin-top:5px">Donor ↔ Regular করলে Member ID-এর serial একদম অপরিবর্তিত থাকবে। শুধু D code যোগ/বাদ হবে: NNSC0626021 ↔ NNSCD0626021। অন্য কোনো সদস্যের serial পরিবর্তন হবে না।</small></label><label>Name *<input id="name" class="input name-uppercase" required autocomplete="name" style="text-transform:uppercase"></label><label>Father Name *<input id="fatherName" class="input name-uppercase" required autocomplete="name" style="text-transform:uppercase"></label><label>Mobile<input id="phone" class="input"></label><label>Aadhaar Number<input id="aadhaar" class="input" maxlength="12" inputmode="numeric" placeholder="12 digits"></label><label>Date of Birth *<input id="dob" class="input" type="date" required></label><label>Gender *<select id="gender" class="input" required><option value="Male" selected>Male</option><option value="Female">Female</option><option value="Other">Other</option></select></label><label>Blood Group<select id="blood" class="input"><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option></select></label><label>Membership Plan (Admin can add without payment)
 <select id="fee" class="input">
           <option value="100">₹100 — 1 Month</option>
@@ -316,7 +342,7 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
   <label>Choose Membership Plan
     <select id="paymentPlan" class="input"><option value="100">₹100 — 1 Month</option><option value="200">₹200 — 2 Months</option><option value="300">₹300 — 3 Months</option><option value="400">₹400 — 4 Months</option><option value="500">₹500 — 5 Months</option><option value="1000">₹1000 — 12 Months (1 Year)</option></select>
   </label>
-  <div id="paymentBackdateInfo" class="hint" style="margin-top:10px"></div>
+  
   <div class="hint" style="margin-top:10px">💳 Pay Now চাপুন এবং UPI payment সম্পূর্ণ করুন। Payment সফল হলে Existing Member-এর Membership Renewal <b>অটোমেটিক</b> হবে। Renewal-এর জন্য UTR / Transaction ID বা Admin Verification লাগবে না।</div>
   <div id="paymentTxnWrap" style="display:none">
     <label style="display:block;margin-top:10px">Payment Transaction ID / UTR
@@ -329,7 +355,7 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
     <button id="confirmPayment" class="btn primary" style="display:none">✅ Submit for Verification</button>
   </div>
 </div></div>
-<div id="renew" class="modal"><div class="box"><h2>🔄 Membership Renewal</h2><p id="renewText"></p><label>Membership Plan<select id="renewPlan" class="input"><option value="100">₹100 — 1 Month</option><option value="200">₹200 — 2 Months</option><option value="300">₹300 — 3 Months</option><option value="400">₹400 — 4 Months</option><option value="500">₹500 — 5 Months</option><option value="1000">₹1000 — 12 Months (1 Year)</option></select></label><label>Renewal Month<input id="renewMonth" class="input" type="month" min="2026-06"></label><small style="display:block;color:#667;margin-top:5px">📅 Membership renewal মাস অনুযায়ী হবে, নির্দিষ্ট Date অনুযায়ী নয়। ডিফল্টে বর্তমান মাস নির্বাচিত থাকবে।</small><div class="actions"><button id="closeRenew" class="btn light">Cancel</button><button id="doRenew" class="btn green">Renew</button></div></div></div>
+<div id="renew" class="modal"><div class="box"><h2>🔄 Membership Renewal</h2><p id="renewText"></p><label>Membership Plan<select id="renewPlan" class="input"><option value="100">₹100 — 1 Month</option><option value="200">₹200 — 2 Months</option><option value="300">₹300 — 3 Months</option><option value="400">₹400 — 4 Months</option><option value="500">₹500 — 5 Months</option><option value="1000">₹1000 — 12 Months (1 Year)</option></select></label><label>Renewal Cycle<input id="renewMonth" class="input" type="month" min="2026-06" readonly></label><small style="display:block;color:#667;margin-top:5px">📅 Renewal সবসময় আগের validity শেষ হওয়ার পরের Membership Month থেকে শুরু হবে। 12-month cycle-এর ক্ষেত্রে May শেষ হলে পরের cycle June থেকে May পর্যন্ত চলবে। Payment/Form fill-up-এর date validity start বদলাবে না।</small><div class="actions"><button id="closeRenew" class="btn light">Cancel</button><button id="doRenew" class="btn green">Renew</button></div></div></div>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 /* NNSC_PUBLIC_SETTINGS_RPC_PATCH_2026_09_17 */
@@ -348,7 +374,7 @@ const RAZORPAY_FUNCTION='Create-payment';
 let members=[];
 let applications=[];
 let settings={name:'NORTH NILACHAL SPORTING CENTRE',reg:'S/1L/81249',logo:'',headerBg:'',headerBgOpacity:0.12,voice:'',voiceVolume:0.8,birthdayMusic:true,pass:'1234',notice:'নর্থ নীলাচল স্পোটিং সেন্টারের সকল সদস্যকে মেম্বারশিপের তথ্য যাচাই ও সময়মতো মেম্বারশিপ নবীকরণ করার জন্য অনুরোধ করা হচ্ছে।',durgaPujaLink:''};
-let admin=false,logoData='',memberPhoto='',appPhotoData='',renewId='',paymentId='';
+window.admin=false; let logoData='',memberPhoto='',appPhotoData='',renewId='',paymentId='';
 
 const $=x=>document.getElementById(x);
 const today=new Date();
@@ -417,10 +443,26 @@ function todayISO(){
 }
 function setDefaultPaymentDates(){
   const d=todayISO();
-  // New membership application: always start with today's date.
+  // Payment Date records the actual payment/application date.
   if($('appPaid')) $('appPaid').value=d;
-  // Admin's New Member form also starts with today's date.
   if($('paid') && !$('eid').value) $('paid').value=d;
+}
+
+// Membership Year always starts in June.
+// During June-May 2026/27, new memberships start from June 2026.
+// After May 2027, the next cycle automatically starts June 2027,
+// and the same June-to-May cycle continues every year.
+function currentMembershipCycleStart(){
+  const now=new Date();
+  const y=now.getFullYear();
+  const startYear=(now.getMonth()>=5)?y:y-1; // June = month 5
+  return String(startYear)+'-06-01';
+}
+function initialMembershipStart(){ return currentMembershipCycleStart(); }
+function initialMembershipEnd(fee){
+  const start=initialMembershipStart();
+  const months=validityMonths({fee:Number(fee||0)});
+  return months>0 ? addMonths(start,months) : null;
 }
 const MEMBERSHIP_START_YEAR=2026;
 const MEMBERSHIP_START_MONTH=5; // June = 0-based month 5
@@ -1171,7 +1213,7 @@ async function doLogin(){
     if(ok){
       // Never download or cache the real admin password in the browser.
       settings.pass=p;
-      admin=true;$('login').classList.remove('show');$('addBtn').style.display='inline-block';$('adminDownloads').style.display='block';
+      admin=true;$('login').classList.remove('show');$('addBtn').style.display='inline-block';$('adminDownloads').style.display='block';$('adminViewAnalytics').style.display='block';if(window.refreshViewAnalytics)window.refreshViewAnalytics();
       openTab('admin');apply();rows();renderApplications();
       await loadApplications();
     }else $('loginErr').textContent='Incorrect password';
@@ -1180,7 +1222,7 @@ async function doLogin(){
     $('loginErr').textContent='Password check failed. Check internet connection.';
   }
 }
-$('logout').onclick=()=>{admin=false;$('addBtn').style.display='none';$('adminDownloads').style.display='none';openTab('home');rows()};
+$('logout').onclick=()=>{admin=false;$('addBtn').style.display='none';$('adminDownloads').style.display='none';$('adminViewAnalytics').style.display='none';openTab('home');rows()};
 
 function saveFastCache(){
   try{
@@ -1388,7 +1430,7 @@ window.approveApplication=async id=>{
   const newId=nextMemberId('regular');
   const memberFee=fee;
   const memberPaid=a.paid||todayISO();
-  const memberValidity=memberFee>0?addMonths(memberPaid,validityMonths({fee:memberFee})):null;
+  const memberValidity=initialMembershipEnd(memberFee);
   const member={id:crypto.randomUUID(),member_id:newId,name:memberName(a.name),father_name:memberName(a.father_name||''),gender:a.gender||'',phone:a.phone||'',aadhaar:a.aadhaar||'',dob:a.dob||'',blood:a.blood||'',fee:memberFee,paid:memberPaid,validity_end:memberValidity,address:a.address||'',photo:a.photo||''};
   try{
     await rest('/members',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(member)});
@@ -1667,7 +1709,7 @@ $('applicationForm').onsubmit=async e=>{
     const memberType=($('memberType')?.value||'regular');
     const memberId=await nextMemberIdFresh(memberType);
     const paid=$('appPaid').value||todayISO();
-    const member={id:crypto.randomUUID(),member_id:memberId,name:memberName($('appName').value),father_name:memberName($('appFatherName').value),gender:$('appGender').value,phone:$('appPhone').value.trim(),aadhaar:a,dob:$('appDob').value,blood:$('appBlood').value,fee:paymentAmount,paid,validity_end:paymentAmount>0?addMonths(paid,validityMonths({fee:paymentAmount})):null,address:$('appAddress').value.trim(),photo:appPhotoData||''};
+    const member={id:crypto.randomUUID(),member_id:memberId,name:memberName($('appName').value),father_name:memberName($('appFatherName').value),gender:$('appGender').value,phone:$('appPhone').value.trim(),aadhaar:a,dob:$('appDob').value,blood:$('appBlood').value,fee:paymentAmount,paid,validity_end:initialMembershipEnd(paymentAmount),address:$('appAddress').value.trim(),photo:appPhotoData||''};
     try{
       await rest('/members',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(member)});
       saveMemberType(member.id,'regular');
@@ -1684,8 +1726,8 @@ $('applicationForm').onsubmit=async e=>{
   if(!isFemale && paymentAmount<100)return alert('Minimum membership payment ₹100 করতে হবে');
   if(!isFemale && (!window.appPaymentStarted || !window.appPaymentVerified))return alert('প্রথমে Pay Now করে payment সফলভাবে সম্পূর্ণ করুন');
   if(!isFemale && !txn)return alert('Payment verification সম্পূর্ণ হয়নি। অনুগ্রহ করে Pay Now করে আবার চেষ্টা করুন।');
-  const femalePaid=($('appPaid').value||todayISO());
-  const payload={name:memberName($('appName').value),father_name:memberName($('appFatherName').value),gender:$('appGender').value,phone:$('appPhone').value.trim(),aadhaar:a,dob:$('appDob').value,blood:$('appBlood').value,fee:paymentAmount,paid:femalePaid,address:$('appAddress').value.trim(),photo:appPhotoData,status:'pending',transaction_id:isFemale?'FREE-FEMALE':txn,payment_time:(window.appPaymentTime||new Date().toISOString()),member_id:existingMemberId,validity_end:isFemale?addMonths(femalePaid,12):undefined};
+  const femalePaid=$('appPaid').value||todayISO();
+  const payload={name:memberName($('appName').value),father_name:memberName($('appFatherName').value),gender:$('appGender').value,phone:$('appPhone').value.trim(),aadhaar:a,dob:$('appDob').value,blood:$('appBlood').value,fee:paymentAmount,paid:femalePaid,address:$('appAddress').value.trim(),photo:appPhotoData,status:'pending',transaction_id:isFemale?'FREE-FEMALE':txn,payment_time:(window.appPaymentTime||new Date().toISOString()),member_id:existingMemberId,validity_end:isFemale?initialMembershipEnd(12):undefined};
   try{
     await rest('/membership_applications',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(payload)});
     $('applicationForm').reset();
@@ -1817,9 +1859,17 @@ window.openR=id=>{
   if(!admin)return;renewId=id;let m=members.find(x=>x.id===id);if(!m)return;
   $('renewText').innerHTML='<b>'+esc(memberName(m.name))+'</b>-’s membership renewal.';
   $('renewPlan').value='100';
-  const now=new Date();
-  const currentMonth=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  $('renewMonth').value=currentMonth;
+  const end=validityDate(m);
+  let nextStart;
+  if(end){
+    const d=new Date(end+'T00:00:00');
+    d.setDate(1);
+    d.setMonth(d.getMonth()+1);
+    nextStart=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  }else{
+    nextStart=initialMembershipStart().slice(0,7);
+  }
+  $('renewMonth').value=nextStart;
   $('renew').classList.add('show');
 };
 $('closeRenew').onclick=()=>$('renew').classList.remove('show');
@@ -2153,18 +2203,21 @@ function buildAllMemberForms(){
     const fee=Number(m.fee||0);
     const paid=fmt(m.paid);
     const valid=fmt(validityDate(m));
-    const status=st(m)[1];
+    const status=(String(st(m)[1]||'').toLowerCase().includes('expired')?'Expired':'Active');
 
     // IMPORTANT: keep the original photo URL.
     // <img> can load it in the browser even when fetch()/canvas is blocked by CORS.
     const photo=m.photo
-      ? '<img src="'+esc(m.photo)+'" crossorigin="anonymous" style="width:100px;height:100px;object-fit:cover;border:1px solid #999" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">'
-        + '<div style="display:none;width:100px;height:100px;border:1px solid #999;place-items:center">Photo</div>'
-      : '<div style="width:100px;height:100px;border:1px solid #999;display:grid;place-items:center">Photo</div>';
+      ? '<div class="print-photo-frame"><img src="'+esc(m.photo)+'" crossorigin="anonymous" alt="Member Photo" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><div style="display:none;width:100%;height:100%;place-items:center">Photo</div></div>'
+      : '<div class="print-photo-frame"><div style="width:100%;height:100%;display:grid;place-items:center">Photo</div></div>';
+    const logoSrc=String(settings.logo||'').trim();
+    const logo=logoSrc
+      ? '<img class="print-logo" src="'+esc(logoSrc)+'" alt="Club Logo" crossorigin="anonymous" onerror="this.style.display=\'none\'">'
+      : '';
 
     return `<div class="member-form-page">
       <div class="form-header">
-        <div><h1>North Nilachal Sporting Center</h1><div>Registration No.: ${formValue(settings.reg||'S/1L/81249')}</div><div>Membership Application / Member Record</div></div>
+        <div class="form-brand">${logo}<div><h1>North Nilachal Sporting Center</h1><div>Registration No.: ${formValue(settings.reg||'S/1L/81249')}</div><div>Membership Application / Member Record</div></div></div>
         ${photo}
       </div>
       <hr>
@@ -2172,6 +2225,7 @@ function buildAllMemberForms(){
         <tr><th>Member ID</th><td>${formValue(id)}</td><th id="memberTypeHead" style="display:none">Member Type</th><td>${isDonor(m)?'Donor Member (D)':'Regular Member'}</td></tr>
         <tr><th>Gender</th><td colspan="3">${formValue(gender)}</td></tr>
         <tr><th>Name</th><td colspan="3">${formValue(m.name)}</td></tr>
+        <tr><th>Father Name</th><td colspan="3">${formValue(m.father_name)}</td></tr>
         <tr><th>Mobile</th><td>${formValue(m.phone)}</td><th>Blood Group</th><td>${formValue(m.blood)}</td></tr>
         <tr><th>Date of Birth</th><td>${dob}</td><th>Address</th><td>${formValue(m.address)}</td></tr>
         <tr><th>Aadhaar Number</th><td colspan="3">${formValue(m.aadhaar||'')}</td></tr>
@@ -2186,8 +2240,10 @@ function buildAllMemberForms(){
   return `<!doctype html><html><head><meta charset="utf-8"><title>North Nilachal - All Member Forms</title>
   <style>
   @page{size:A4;margin:12mm}body{font-family:Arial,sans-serif;color:#111}.member-form-page{page-break-after:always;min-height:270mm}.member-form-page:last-child{page-break-after:auto}
-  .form-header{display:flex;justify-content:space-between;align-items:flex-start}.form-header h1{margin:0 0 6px;font-size:22px}.print-table{width:100%;border-collapse:collapse;margin-top:18px}.print-table th,.print-table td{border:1px solid #777;padding:9px;text-align:left;vertical-align:top}.print-table th{width:18%;background:#f1f1f1}.signature-row{display:flex;justify-content:space-between;margin-top:70px}.footer-note{margin-top:45px;text-align:center;font-size:12px;color:#666}
+  .form-header{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}.form-brand{display:flex;align-items:center;gap:12px;min-width:0}.print-logo{width:62px;height:62px;border-radius:50%;object-fit:contain;border:2px solid #f4b400;background:#fff;flex:0 0 62px}.form-header h1{margin:0 0 6px;font-size:22px}.print-photo-frame{width:82px;height:108px;border:1px solid #999;background:#fff;display:grid;place-items:center;overflow:hidden;flex:0 0 82px}.print-photo-frame img{display:block;width:100%;height:100%;object-fit:contain;background:#fff}.print-table{width:100%;border-collapse:collapse;margin-top:18px}.print-table th,.print-table td{border:1px solid #777;padding:9px;text-align:left;vertical-align:top}.print-table th{width:18%;background:#f1f1f1}.signature-row{display:flex;justify-content:space-between;margin-top:70px}.footer-note{margin-top:45px;text-align:center;font-size:12px;color:#666}
   </style></head><body>${pages}
+
+
 </body></html>`;
 }
 
@@ -2230,48 +2286,194 @@ async function preparePrintForms(){
   let old=document.getElementById('all-member-print-root');
   if(old)old.remove();
 
+  // buildAllMemberForms returns a complete HTML document. Parse it first and
+  // copy only its body content into the live capture root. Putting a complete
+  // <html>/<body> document inside a <div> can produce an empty html2canvas
+  // capture on Android, which was the cause of the blank PDF.
+  const parsed=new DOMParser().parseFromString(html,'text/html');
   const root=document.createElement('div');
   root.id='all-member-print-root';
-  root.innerHTML=html;
+  root.innerHTML=parsed.body ? parsed.body.innerHTML : html;
   document.body.appendChild(root);
 
   await waitForImagesIn(root,15000);
   return root;
 }
 
+async function ensureJsPdf(){
+  if(window.jspdf && window.jspdf.jsPDF) return true;
+  return await new Promise((resolve,reject)=>{
+    const existing=document.querySelector('script[data-nnsc-jspdf]');
+    if(existing){
+      existing.addEventListener('load',()=>resolve(!!(window.jspdf&&window.jspdf.jsPDF)),{once:true});
+      existing.addEventListener('error',reject,{once:true});
+      return;
+    }
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    sc.async=true; sc.dataset.nnscJspdf='1';
+    sc.onload=()=>resolve(!!(window.jspdf&&window.jspdf.jsPDF));
+    sc.onerror=()=>reject(new Error('PDF engine load failed'));
+    document.head.appendChild(sc);
+  });
+}
+
+async function imageUrlToDataUrl(url){
+  if(!url) return null;
+  try{
+    if(String(url).startsWith('data:')) return url;
+    const res=await fetch(url,{mode:'cors',credentials:'omit'});
+    if(!res.ok) throw new Error('image '+res.status);
+    const blob=await res.blob();
+    return await new Promise((resolve,reject)=>{
+      const fr=new FileReader();
+      fr.onload=()=>resolve(fr.result);
+      fr.onerror=reject;
+      fr.readAsDataURL(blob);
+    });
+  }catch(e){
+    console.warn('Image conversion failed:',e.message);
+    return null;
+  }
+}
+
+function addPdfMemberPage(doc,m,logoData,photoData,index,total){
+  const W=210, H=297, left=14, right=196;
+  const id=getMemberId(m)||'—';
+  const gender=m.gender||'Male';
+  const paid=fmt(m.paid);
+  const valid=fmt(validityDate(m));
+  // Use English status in jsPDF because the built-in Helvetica font does not
+  // contain Bengali glyphs; this prevents the status from rendering as dots.
+  const statusKey=st(m)[0];
+  const status=statusKey==='ok'?'Active':(statusKey==='due'?'Renewal Due':'Expired');
+  let y=14;
+
+  doc.setDrawColor(244,180,0);
+  doc.setLineWidth(0.5);
+  if(logoData){
+    try{ doc.addImage(logoData,'JPEG',left,y,20,20); }
+    catch(e){ try{doc.addImage(logoData,'PNG',left,y,20,20);}catch(_){} }
+  }
+  doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(23,59,99);
+  doc.text('North Nilachal Sporting Center',left+25,y+7);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(70,70,70);
+  doc.text('Registration No.: '+String(settings.reg||'S/1L/81249'),left+25,y+13);
+  doc.text('Membership Application / Member Record',left+25,y+18);
+
+  if(photoData){
+    try{ doc.addImage(photoData,'JPEG',171,y,25,33); }
+    catch(e){ try{doc.addImage(photoData,'PNG',171,y,25,33);}catch(_){} }
+  }else{
+    doc.setDrawColor(130); doc.rect(171,y,25,33); doc.setFontSize(8); doc.text('Photo',183.5,y+18,{align:'center'});
+  }
+  y=51;
+  doc.setDrawColor(100); doc.line(left,y,196,y); y+=8;
+
+  // Fixed A4-safe columns. Value columns are deliberately wider and all
+  // long values are wrapped to stay inside their cells.
+  const x=[left,42,92,122,196];
+  const rows=[
+    ['Member ID',id,'Member Type',isDonor(m)?'Donor Member (D)':'Regular Member',12],
+    ['Gender',gender,'','',10],
+    ['Name',m.name||'','', '',10],
+    ['Father Name',m.father_name||'','', '',10],
+    ['Mobile',m.phone||'','Blood Group',m.blood||'',10],
+    ['Date of Birth',fmtDOB(m.dob),'Address',m.address||'',24],
+    ['Aadhaar Number',m.aadhaar||'','','',12],
+    ['Payment Date',paid,'Membership Validity',valid,14],
+    ['Status',status,'','',12]
+  ];
+
+  rows.forEach((r,ri)=>{
+    const [label1,val1,label2,val2,rowH]=r;
+    const hasSecond=!!label2;
+    doc.setDrawColor(110);
+    doc.rect(x[0],y,x[4]-x[0],rowH);
+    doc.line(x[1],y,x[1],y+rowH);
+    if(hasSecond){
+      doc.line(x[2],y,x[2],y+rowH);
+      doc.line(x[3],y,x[3],y+rowH);
+    }
+
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8);
+    doc.setTextColor(40);
+    doc.text(String(label1),x[0]+2,y+6);
+
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8.2);
+    const max1=hasSecond ? (x[2]-x[1]-4) : (x[4]-x[1]-4);
+    const lines1=doc.splitTextToSize(String(val1||'—'),max1);
+    const maxLines1=Math.max(1,Math.floor((rowH-4)/4.2));
+    doc.text(lines1.slice(0,maxLines1),x[1]+2,y+6,{lineHeightFactor:1.05});
+
+    if(hasSecond){
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8);
+      doc.text(String(label2),x[2]+2,y+6);
+
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(8.2);
+      const max2=x[4]-x[3]-4;
+      const lines2=doc.splitTextToSize(String(val2||'—'),max2);
+      const maxLines2=Math.max(1,Math.floor((rowH-4)/4.2));
+      doc.text(lines2.slice(0,maxLines2),x[3]+2,y+6,{lineHeightFactor:1.05});
+    }
+    y+=rowH;
+  });
+
+  y=232;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(40);
+  doc.text('Member Signature: ______________________________',left,y);
+  doc.text('Admin Signature: ______________________________',108,y);
+  doc.setFontSize(8); doc.setTextColor(110);
+  doc.text('North Nilachal Sporting Center • Official Member Record',105,263,{align:'center'});
+  doc.setFontSize(7); doc.text(index+' / '+total,105,286,{align:'center'});
+}
+
 async function downloadAllMemberForms(){
   if(!admin)return;
   if(!members.length)return alert('কোনো Member নেই।');
-
   const btn=$('downloadAllForms');
   const old=btn.textContent;
-  btn.disabled=true;
-  btn.textContent='⏳ Preparing forms...';
-
+  btn.disabled=true; btn.textContent='⏳ PDF তৈরি হচ্ছে...';
   try{
-    // Refresh all member photo URLs before creating the downloadable file.
-    // Download itself NEVER opens the printer.
-    // preparePrintForms() loads the latest photos from Supabase first.
-    const preparedRoot=await preparePrintForms();
-    const html=buildAllMemberForms();
-    preparedRoot.remove();
+    await ensureJsPdf();
+    if(!(window.jspdf&&window.jspdf.jsPDF)) throw new Error('PDF engine পাওয়া যায়নি।');
 
-    const fullHtml='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>North Nilachal - All Member Forms</title></head><body>'+html+'</body></html>';
-    const blob=new Blob([fullHtml],{type:'text/html;charset=utf-8'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download='North-Nilachal-All-Member-Forms.html';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),3000);
+    // Refresh current photo URLs from the database when possible.
+    const ids=members.map(m=>m.id).filter(Boolean);
+    for(let i=0;i<ids.length;i+=15){
+      const batch=ids.slice(i,i+15);
+      try{
+        const data=await rest('/members?select=id,photo&id=in.('+batch.join(',')+')');
+        if(Array.isArray(data)) data.forEach(r=>{
+          const mem=members.find(x=>String(x.id)===String(r.id));
+          if(mem && r.photo) mem.photo=r.photo;
+        });
+      }catch(e){ console.warn('Photo refresh failed:',e.message); }
+    }
+
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
+
+    // IMPORTANT: PDF pages must follow Member ID serial order, not the
+    // database/name order. Regular + Donor share the same serial sequence.
+    const printMembers=sortedMembers(members);
+    const total=printMembers.length;
+    const logoData=await imageUrlToDataUrl(String(settings.logo||'').trim());
+    for(let i=0;i<total;i++){
+      if(i>0) doc.addPage();
+      const photoData=await imageUrlToDataUrl(printMembers[i].photo||'');
+      addPdfMemberPage(doc,printMembers[i],logoData,photoData,i+1,total);
+    }
+    doc.save('North-Nilachal-All-Member-Forms.pdf');
   }catch(e){
     console.error(e);
-    alert('Forms download করা যায়নি: '+(e.message||e));
+    alert('PDF download করা যায়নি: '+(e.message||e));
   }finally{
-    btn.disabled=false;
-    btn.textContent=old;
+    btn.disabled=false; btn.textContent=old;
   }
 }
 
@@ -2503,4 +2705,50 @@ loadData();
 })();
 </script>
 
+
+<script id="nnsc-view-analytics">
+(function(){
+  const VIEW_TZ='Asia/Kolkata';
+  function localISODate(){
+    return new Intl.DateTimeFormat('en-CA',{timeZone:VIEW_TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  }
+  function localMonthPrefix(){ return localISODate().slice(0,7); }
+  async function recordSiteView(){
+    try{
+      await rest('/rpc/record_site_view',{
+        method:'POST',
+        body:JSON.stringify({p_view_date:localISODate()})
+      });
+    }catch(e){ console.warn('Site view counter failed:',e); }
+  }
+  async function loadViewAnalytics(){
+    const box=document.getElementById('adminViewAnalytics');
+    if(!box || !window.admin) return;
+    try{
+      const rows=await rest('/site_view_daily?select=view_date,view_count&order=view_date.desc&limit=5000');
+      const list=Array.isArray(rows)?rows:[];
+      const today=localISODate(), month=localMonthPrefix();
+      let total=0, monthTotal=0, todayTotal=0;
+      list.forEach(r=>{
+        const n=Number(r.view_count||0), d=String(r.view_date||'');
+        total+=n;
+        if(d===today) todayTotal+=n;
+        if(d.slice(0,7)===month) monthTotal+=n;
+      });
+      const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+      set('viewsToday',todayTotal.toLocaleString('en-IN'));
+      set('viewsMonth',monthTotal.toLocaleString('en-IN'));
+      set('viewsTotal',total.toLocaleString('en-IN'));
+      set('viewsTodayDate',today);
+      set('viewsMonthName',month);
+    }catch(e){ console.warn('View analytics load failed:',e); }
+  }
+  window.refreshViewAnalytics=loadViewAnalytics;
+  document.addEventListener('click',e=>{
+    if(e.target && e.target.id==='refreshViewAnalytics') loadViewAnalytics();
+  });
+  setTimeout(recordSiteView,1200);
+  setInterval(loadViewAnalytics,3000);
+})();
+</script>
 </body></html>
