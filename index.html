@@ -260,6 +260,29 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
     <button type="button" id="refreshViewAnalytics" class="btn light">🔄 Refresh Views</button>
   </div>
 </div>
+<div id="memberEditAccessLogs" class="card" style="display:none">
+  <h2>🔐 Member Edit Access History</h2>
+  <p class="hint">কোন সদস্য নিজের <b>Date of Birth + Aadhaar-এর প্রথম ৪টি সংখ্যা</b> password দিয়ে <b>“Edit My Details”</b>-এ ঢুকেছে, তার তারিখ ও সময় এখানে দেখা যাবে।</p>
+  <div class="toolbar" style="margin-top:12px;align-items:center">
+    <label style="flex:1;min-width:180px">শুরু তারিখ
+      <input id="editAccessLogDateFrom" class="input" type="date">
+    </label>
+    <label style="flex:1;min-width:180px">শেষ তারিখ
+      <input id="editAccessLogDateTo" class="input" type="date">
+    </label>
+    <button type="button" id="editAccessToday" class="btn light" style="margin-top:22px">📅 আজ</button>
+    <button type="button" id="refreshEditAccessLogs" class="btn primary" style="margin-top:22px">🔄 Refresh</button>
+  </div>
+  <p class="hint" style="margin-top:8px">দুটি তারিখ দিলে ওই সময়সীমার মধ্যে যতজন Member Edit Access করেছে তাদের তালিকা দেখাবে।</p>
+  <div class="grid" style="grid-template-columns:repeat(2,1fr);margin-top:10px">
+    <div class="card stat" style="margin:0"><span>Selected Day Access</span><b id="editAccessDayCount">0</b></div>
+    <div class="card stat" style="margin:0"><span>Total Logged Access</span><b id="editAccessTotalCount">0</b></div>
+  </div>
+  <div class="tablewrap" style="margin-top:14px">
+    <table style="min-width:620px"><thead><tr><th>Time</th><th>Member ID</th><th>Member Name</th><th>Access</th></tr></thead><tbody id="editAccessLogRows"><tr><td colspan="4">⏳ Loading...</td></tr></tbody></table>
+  </div>
+</div>
+
 <div id="adminDownloads" class="card" style="display:none">
   <h2>🆔 Member IDs & Download Forms</h2>
   <p class="hint">এখান থেকে সকল Approved Members-এর Application Form একসঙ্গে Print / Save as PDF করা যাবে।</p>
@@ -1157,18 +1180,42 @@ function normalizeDobPassword(v){
   }
   return v;
 }
+async function logMemberEditAccess(m){
+  try{
+    await rest('/member_edit_access_logs',{
+      method:'POST',
+      headers:{'Prefer':'return=minimal'},
+      body:JSON.stringify({
+        member_id:m&&m.id?m.id:null,
+        member_code:getMemberId(m)||m.member_id||m.memberid||'',
+        member_name:memberName(m&&m.name)||''
+      })
+    });
+  }catch(e){
+    // Logging must never prevent the member from editing their details.
+    console.warn('Member edit access log failed:',e);
+  }
+}
+
 function verifyMemberDobPassword(m){
-  const stored=normalizeDobPassword(m&&m.dob);
-  if(!stored){
-    alert('❌ এই সদস্যের Date of Birth database-এ নেই। তাই Edit করা যাবে না।');
+  const storedDob=normalizeDobPassword(m&&m.dob);
+  const aadhaar=String((m&&m.aadhaar)||'').replace(/\D/g,'');
+  const first4=aadhaar.slice(0,4);
+  if(!storedDob || first4.length!==4){
+    alert('❌ এই সদস্যের Date of Birth অথবা Aadhaar-এর প্রথম ৪টি সংখ্যা database-এ নেই। তাই Edit করা যাবে না।');
     return false;
   }
-  const entered=prompt('🔐 Member Edit Password\n\nআপনার Date of Birth দিন।\nউদাহরণ: 28/09/1993');
+  const entered=prompt('🔐 Member Edit Password\n\nPassword হবে: Date of Birth + Aadhaar-এর প্রথম ৪টি সংখ্যা।\nউদাহরণ: 28/09/19931234');
   if(entered===null) return false;
-  if(normalizeDobPassword(entered)!==stored){
-    alert('❌ ভুল Date of Birth। Edit করার অনুমতি দেওয়া হয়নি।');
+  const raw=String(entered).trim().replace(/\s+/g,'');
+  const expected1=storedDob+first4;
+  const expected2=storedDob.replace(/-/g,'')+first4;
+  const enteredNormalized=normalizeDobPassword(raw.slice(0,10))+raw.slice(10);
+  if(raw!==expected1 && raw!==expected2 && enteredNormalized!==expected1){
+    alert('❌ ভুল Password। Edit করার অনুমতি দেওয়া হয়নি।');
     return false;
   }
+  logMemberEditAccess(m);
   return true;
 }
 function startMemberSelfEdit(m){
@@ -1186,7 +1233,7 @@ function startMemberSelfEdit(m){
   ['selfEditName','selfEditPhone','selfEditGender','selfEditBlood','selfEditAddress','selfEditPhoto'].forEach(id=>$(id).disabled=false);
   $('selfEditBtn').style.display='none';
   $('selfEditStatus').style.color='#52606d';
-  $('selfEditStatus').textContent='🔐 Date of Birth verified. এখন আপনার তথ্য পরিবর্তন করে Save Changes চাপুন।';
+  $('selfEditStatus').textContent='🔐 Password verified. এখন আপনার তথ্য পরিবর্তন করে Save Changes চাপুন।';
   $('selfEditName').focus();
 }
 
@@ -1377,7 +1424,7 @@ async function doLogin(){
     if(ok){
       // Never download or cache the real admin password in the browser.
       settings.pass=p;
-      admin=true;$('login').classList.remove('show');$('addBtn').style.display='inline-block';$('adminDownloads').style.display='block';$('adminViewAnalytics').style.display='block';if(window.refreshViewAnalytics)window.refreshViewAnalytics();
+      admin=true;$('login').classList.remove('show');$('addBtn').style.display='inline-block';$('adminDownloads').style.display='block';$('adminViewAnalytics').style.display='block';$('memberEditAccessLogs').style.display='block';if(window.refreshViewAnalytics)window.refreshViewAnalytics();if(window.loadMemberEditAccessLogs)window.loadMemberEditAccessLogs();
       openTab('admin');apply();rows();renderApplications();
       await loadApplications();
     }else $('loginErr').textContent='Incorrect password';
@@ -1386,7 +1433,7 @@ async function doLogin(){
     $('loginErr').textContent='Password check failed. Check internet connection.';
   }
 }
-$('logout').onclick=()=>{admin=false;$('addBtn').style.display='none';$('adminDownloads').style.display='none';$('adminViewAnalytics').style.display='none';openTab('home');rows()};
+$('logout').onclick=()=>{admin=false;$('addBtn').style.display='none';$('adminDownloads').style.display='none';$('adminViewAnalytics').style.display='none';$('memberEditAccessLogs').style.display='none';openTab('home');rows()};
 
 function saveFastCache(){
   try{
@@ -2929,6 +2976,52 @@ loadData();
     }catch(e){ console.warn('View analytics load failed:',e); }
   }
   window.refreshViewAnalytics=loadViewAnalytics;
+
+  function localRangeBounds(fromStr,toStr){
+    const from=String(fromStr||'');
+    const to=String(toStr||fromStr||'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return null;
+    const start=new Date(from+'T00:00:00');
+    const end=new Date(to+'T00:00:00');
+    if(end < start) return {invalid:true};
+    end.setDate(end.getDate()+1);
+    return {start:start.toISOString(),end:end.toISOString()};
+  }
+  async function loadMemberEditAccessLogs(){
+    const box=document.getElementById('memberEditAccessLogs');
+    if(!box || !window.admin) return;
+    const fromInput=document.getElementById('editAccessLogDateFrom');
+    const toInput=document.getElementById('editAccessLogDateTo');
+    const today=localISODate();
+    const from=fromInput&&fromInput.value?fromInput.value:today;
+    const to=toInput&&toInput.value?toInput.value:today;
+    if(fromInput && !fromInput.value) fromInput.value=from;
+    if(toInput && !toInput.value) toInput.value=to;
+    const bounds=localRangeBounds(from,to);
+    const rowsEl=document.getElementById('editAccessLogRows');
+    if(rowsEl) rowsEl.innerHTML='<tr><td colspan="4">⏳ Loading...</td></tr>';
+    try{
+      const all=await rest('/member_edit_access_logs?select=id,member_id,member_code,member_name,accessed_at&order=accessed_at.desc&limit=5000');
+      const list=Array.isArray(all)?all:[];
+      const dayList=bounds && !bounds.invalid?list.filter(x=>{const t=new Date(x.accessed_at).getTime();return t>=new Date(bounds.start).getTime()&&t<new Date(bounds.end).getTime();}):[];
+      const dayCount=document.getElementById('editAccessDayCount');
+      const totalCount=document.getElementById('editAccessTotalCount');
+      if(dayCount) dayCount.textContent=dayList.length.toLocaleString('en-IN');
+      if(totalCount) totalCount.textContent=list.length.toLocaleString('en-IN');
+      if(!rowsEl)return;
+      if(!dayList.length){rowsEl.innerHTML='<tr><td colspan="4">আজ/নির্বাচিত দিনে কোনো member edit access পাওয়া যায়নি।</td></tr>';return;}
+      rowsEl.innerHTML=dayList.map(x=>'<tr><td>'+esc(fmtDateTime(x.accessed_at))+'</td><td><b>'+esc(x.member_code||'—')+'</b></td><td>'+esc(memberName(x.member_name)||'—')+'</td><td><span class="badge ok">Password Verified</span></td></tr>').join('');
+    }catch(e){
+      if(rowsEl) rowsEl.innerHTML='<tr><td colspan="4">❌ Log load failed: '+esc(e.message||e)+'</td></tr>';
+    }
+  }
+  window.loadMemberEditAccessLogs=loadMemberEditAccessLogs;
+  document.addEventListener('click',e=>{
+    if(e.target && e.target.id==='editAccessToday'){const today=localISODate();const f=document.getElementById('editAccessLogDateFrom');const t=document.getElementById('editAccessLogDateTo');if(f)f.value=today;if(t)t.value=today;loadMemberEditAccessLogs();}
+    if(e.target && e.target.id==='refreshEditAccessLogs') loadMemberEditAccessLogs();
+  });
+  document.addEventListener('change',e=>{if(e.target&&(e.target.id==='editAccessLogDateFrom'||e.target.id==='editAccessLogDateTo'))loadMemberEditAccessLogs();});
+
   document.addEventListener('click',e=>{
     if(e.target && e.target.id==='refreshViewAnalytics') loadViewAnalytics();
   });
