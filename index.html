@@ -47,6 +47,7 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
 .name-uppercase{text-transform:uppercase;}
 
 .member-row{cursor:pointer}.member-row:hover{background:#f7fbff}.member-detail-photo{width:100%;height:100%;object-fit:cover;display:block}#memberDetailGrid .detail-item{background:#f7f9fc;border-radius:10px;padding:10px}#memberDetailGrid .detail-label{display:block;font-size:12px;color:#667;margin-bottom:3px}#memberDetailGrid .detail-value{font-weight:700;color:#172033;word-break:break-word}
+.member-self-edit{margin-top:16px;padding:14px;border:1px solid #dbe7f5;border-radius:12px;background:#f8fbff}.member-self-edit h3{margin:0 0 8px;color:#173b63;font-size:17px}.member-self-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.member-self-edit .input{margin-top:4px}.member-edit-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}@media(max-width:760px){.member-self-edit-grid{grid-template-columns:1fr}}
 </style>
 <style id="female-free-membership-style">
 .app-female-free{display:none!important}
@@ -292,6 +293,28 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
       <div><div id="memberDetailName" style="font-size:22px;font-weight:800"></div><div id="memberDetailId" style="margin-top:5px;color:#667;font-weight:700"></div><div id="memberDetailStatus" style="margin-top:8px"></div></div>
     </div>
     <div id="memberDetailGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+    <div class="member-self-edit">
+      <h3>✏️ নিজের তথ্য পরিবর্তন</h3>
+      <div id="memberEditHint" style="font-size:13px;color:#667;margin-bottom:8px">নিজের Date of Birth-কে password হিসেবে দিয়ে Name, Mobile Number, Gender, Blood Group, Address এবং Photo পরিবর্তন করতে পারবেন।</div>
+      <div id="memberSelfEditFields" class="member-self-edit-fields" style="display:none">
+        <div class="member-self-edit-grid">
+          <label>Full Name<input id="selfEditName" class="input" type="text" disabled maxlength="120" placeholder="Full Name"></label>
+          <label>Mobile Number<input id="selfEditPhone" class="input" type="tel" disabled inputmode="tel" maxlength="15" placeholder="Mobile Number"></label>
+          <label>Gender<select id="selfEditGender" class="input" disabled><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></label>
+          <label>Blood Group<select id="selfEditBlood" class="input" disabled><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option></select></label>
+          <label style="grid-column:1/-1">Address<textarea id="selfEditAddress" class="input" disabled rows="3" maxlength="300" placeholder="Address"></textarea></label>
+          <label style="grid-column:1/-1">Photo<input id="selfEditPhoto" class="input" type="file" accept="image/*" disabled><small id="selfEditPhotoStatus" style="display:block;color:#667;margin-top:5px">Passport-size photo. Photo will be automatically compressed to 100 KB.</small><img id="selfEditPhotoPreview" style="display:none;width:90px;height:110px;object-fit:cover;border-radius:10px;margin-top:8px;background:#eef2f7"></label>
+        </div>
+        <div id="selfEditStatus" style="font-size:13px;margin-top:8px"></div>
+        <div class="member-edit-actions">
+          <button type="button" id="selfEditCancel" class="btn light">Cancel</button>
+          <button type="button" id="selfEditSave" class="btn green">💾 Save Changes</button>
+        </div>
+      </div>
+      <div class="member-edit-actions">
+        <button type="button" id="selfEditBtn" class="btn primary">✏️ Edit My Details</button>
+      </div>
+    </div>
   </div>
 </div>
 <div id="birthdayModal" class="bday-modal" role="dialog" aria-modal="true" aria-labelledby="birthdayTitle">
@@ -1109,6 +1132,123 @@ async function fetchMemberFresh(id){
 function detailItem(label,value){
   return '<div class="detail-item"><span class="detail-label">'+esc(label)+'</span><span class="detail-value">'+esc(value||'—')+'</span></div>';
 }
+let memberDetailEditingId='';
+let memberDetailEditing=false;
+
+let selfEditPhoto='';
+function resetMemberSelfEdit(clearId=true){
+  memberDetailEditing=false;
+  if(clearId) memberDetailEditingId='';
+  if($('memberSelfEditFields')) $('memberSelfEditFields').style.display='none';
+  ['selfEditName','selfEditPhone','selfEditGender','selfEditBlood','selfEditAddress','selfEditPhoto'].forEach(id=>{if($(id))$(id).disabled=true;});
+  if($('selfEditPhoto')) $('selfEditPhoto').value='';
+  if($('selfEditPhotoPreview')){ $('selfEditPhotoPreview').style.display='none'; $('selfEditPhotoPreview').removeAttribute('src'); }
+  selfEditPhoto='';
+  if($('selfEditPhotoStatus')) $('selfEditPhotoStatus').textContent='Passport-size photo. Photo will be automatically compressed to 100 KB.';
+  if($('selfEditBtn')) $('selfEditBtn').style.display='inline-block';
+  if($('selfEditStatus')) $('selfEditStatus').textContent='';
+}
+
+function normalizeDobPassword(v){
+  v=String(v||'').trim().replace(/\s+/g,'');
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  if(/^\d{2}[-\/ ]\d{2}[-\/ ]\d{4}$/.test(v)){
+    const a=v.split(/[-\/ ]/); return a[2]+'-'+a[1]+'-'+a[0];
+  }
+  return v;
+}
+function verifyMemberDobPassword(m){
+  const stored=normalizeDobPassword(m&&m.dob);
+  if(!stored){
+    alert('❌ এই সদস্যের Date of Birth database-এ নেই। তাই Edit করা যাবে না।');
+    return false;
+  }
+  const entered=prompt('🔐 Member Edit Password\n\nআপনার Date of Birth দিন।\nউদাহরণ: 28/09/1993');
+  if(entered===null) return false;
+  if(normalizeDobPassword(entered)!==stored){
+    alert('❌ ভুল Date of Birth। Edit করার অনুমতি দেওয়া হয়নি।');
+    return false;
+  }
+  return true;
+}
+function startMemberSelfEdit(m){
+  if(!verifyMemberDobPassword(m)) return;
+  memberDetailEditing=true;
+  memberDetailEditingId=String(m.id||'');
+  $('selfEditName').value=memberName(m.name)||'';
+  $('selfEditPhone').value=m.phone||m.mobile||'';
+  $('selfEditGender').value=m.gender||'';
+  $('selfEditBlood').value=m.blood||'';
+  $('selfEditAddress').value=m.address||'';
+  selfEditPhoto=String(m.photo||'');
+  if(selfEditPhoto){ $('selfEditPhotoPreview').src=selfEditPhoto; $('selfEditPhotoPreview').style.display='block'; }
+  $('memberSelfEditFields').style.display='block';
+  ['selfEditName','selfEditPhone','selfEditGender','selfEditBlood','selfEditAddress','selfEditPhoto'].forEach(id=>$(id).disabled=false);
+  $('selfEditBtn').style.display='none';
+  $('selfEditStatus').style.color='#52606d';
+  $('selfEditStatus').textContent='🔐 Date of Birth verified. এখন আপনার তথ্য পরিবর্তন করে Save Changes চাপুন।';
+  $('selfEditName').focus();
+}
+
+$('selfEditPhoto').onchange=async e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f)return;
+  try{
+    selfEditPhoto=await compressImageFileTo100KB(f);
+    $('selfEditPhotoPreview').src=selfEditPhoto;
+    $('selfEditPhotoPreview').style.display='block';
+    $('selfEditPhotoStatus').style.color='#137a43';
+    $('selfEditPhotoStatus').textContent='✅ Photo ready. Automatically compressed to 100 KB or less.';
+  }catch(err){
+    e.target.value=''; selfEditPhoto=''; $('selfEditPhotoPreview').style.display='none';
+    $('selfEditPhotoStatus').style.color='#a82f2f';
+    $('selfEditPhotoStatus').textContent='❌ Photo compress করা যায়নি: '+String(err.message||err);
+  }
+};
+
+async function saveMemberSelfEdit(){
+  const id=String(memberDetailEditingId||'');
+  if(!id||!memberDetailEditing)return;
+  const m=members.find(x=>String(x.id)===id);
+  if(!m)return;
+  // Date of Birth is verified when the member enters Edit mode.
+  const name=memberName($('selfEditName').value||'').trim();
+  const phone=String($('selfEditPhone').value||'').trim();
+  const gender=String($('selfEditGender').value||'').trim();
+  const blood=String($('selfEditBlood').value||'').trim();
+  const address=String($('selfEditAddress').value||'').trim();
+  if(!name){
+    $('selfEditStatus').style.color='#a82f2f';
+    $('selfEditStatus').textContent='❌ Name দিন।';
+    return;
+  }
+  if(phone && !/^[0-9+\-() ]{7,15}$/.test(phone)){
+    $('selfEditStatus').style.color='#a82f2f';
+    $('selfEditStatus').textContent='❌ সঠিক Mobile Number দিন।';
+    return;
+  }
+  const btn=$('selfEditSave');
+  btn.disabled=true;btn.textContent='⏳ Saving...';
+  try{
+    const result=await rest('/members?id=eq.'+encodeURIComponent(id),{
+      method:'PATCH',
+      headers:{'Prefer':'return=representation'},
+      body:JSON.stringify({name:name,phone:phone,gender:gender,blood:blood,address:address,photo:selfEditPhoto})
+    });
+    const updated=Array.isArray(result)?result[0]:result;
+    if(!updated) throw new Error('Database update was not allowed.');
+    Object.assign(m,updated,{name:name,phone:phone,gender:gender,blood:blood,address:address,photo:selfEditPhoto});
+    saveFastCache();
+    $('selfEditStatus').style.color='#137a43';
+    $('selfEditStatus').textContent='✅ Name, Mobile Number, Gender, Blood Group, Address এবং Photo সফলভাবে পরিবর্তন হয়েছে।';
+    await openMemberDetails(id);
+  }catch(e){
+    $('selfEditStatus').style.color='#a82f2f';
+    $('selfEditStatus').textContent='❌ Save failed: '+String(e.message||e);
+  }finally{
+    btn.disabled=false;btn.textContent='💾 Save Changes';
+  }
+}
+
 async function openMemberDetails(id){
   id=String(id||''); if(!id)return;
   const modal=$('memberDetailModal');
@@ -1148,6 +1288,14 @@ async function openMemberDetails(id){
     vals.push(detailItem('Aadhaar',admin?String(m.aadhaar||'—'):'XXXX-XXXX-'+String(m.aadhaar||'').slice(-4)||'—'));
     vals.push(detailItem('Address',m.address));
     $('memberDetailGrid').innerHTML=vals.join('');
+   resetMemberSelfEdit(false);
+   memberDetailEditingId=String(m.id||id);
+   $('selfEditName').value=memberName(m.name)||'';
+   $('selfEditPhone').value=m.phone||m.mobile||'';
+   $('selfEditGender').value=m.gender||'';
+   $('selfEditBlood').value=m.blood||'';
+   $('selfEditAddress').value=m.address||'';
+   selfEditPhoto=String(m.photo||'');
   }catch(e){
     console.warn('Member details loading failed:',e.message);
     $('memberDetailStatus').innerHTML='<span class="badge exp">Details could not be loaded</span>';
@@ -1175,8 +1323,20 @@ async function openMemberPhoto(id){
   $('photoViewerName').textContent=memberName(m&&m.name)||'';
   $('photoViewer').classList.add('show');
 }
-$('memberDetailClose').onclick=()=>$('memberDetailModal').classList.remove('show');
-$('memberDetailModal').addEventListener('click',e=>{if(e.target.id==='memberDetailModal')$('memberDetailModal').classList.remove('show');});
+$('memberDetailClose').onclick=()=>{resetMemberSelfEdit();$('memberDetailModal').classList.remove('show');};
+$('selfEditBtn').onclick=()=>{
+  const id=String(memberDetailEditingId||'');
+  const m=members.find(x=>String(x.id)===id);
+  if(m)startMemberSelfEdit(m);
+};
+$('selfEditCancel').onclick=()=>{
+  const id=String(memberDetailEditingId||'');
+  const m=members.find(x=>String(x.id)===id);
+  if(m){$('selfEditName').value=memberName(m.name)||'';$('selfEditPhone').value=m.phone||m.mobile||'';$('selfEditGender').value=m.gender||'';$('selfEditBlood').value=m.blood||'';$('selfEditAddress').value=m.address||'';selfEditPhoto=String(m.photo||'');}
+  resetMemberSelfEdit();
+};
+$('selfEditSave').onclick=saveMemberSelfEdit;
+$('memberDetailModal').addEventListener('click',e=>{if(e.target.id==='memberDetailModal'){resetMemberSelfEdit();$('memberDetailModal').classList.remove('show');}});
 $('photoViewer').addEventListener('click',e=>{if(e.target.id==='photoViewer')closeMemberPhoto();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMemberPhoto();$('memberDetailModal').classList.remove('show');}});
 
