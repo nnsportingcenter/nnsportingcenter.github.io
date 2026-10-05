@@ -40,7 +40,7 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
 @media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.form{grid-template-columns:1fr}.full{grid-column:auto}.brand h1{font-size:18px}th,td{font-size:12px;padding:8px}}
 
 /* Birthday celebration */
-.bday-modal{position:fixed;inset:0;background:rgba(16,20,35,.82);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;overflow:hidden}.bday-modal.show{display:flex}.bday-box{position:relative;background:linear-gradient(145deg,#fff,#fff8fb);border-radius:28px;width:min(560px,100%);padding:32px 22px 26px;text-align:center;box-shadow:0 25px 80px #0006;overflow:hidden;animation:bdayPop .55s cubic-bezier(.2,1.4,.4,1)}.bday-box h2{margin:4px 0 8px;font-size:30px}.bday-name{font-size:34px;font-weight:900;margin:12px 0 8px}.bday-message{font-size:17px;line-height:1.7;color:#4c566a}.bday-cake{font-size:76px;animation:cakeBounce 1.2s ease-in-out infinite}.bday-close{position:absolute;right:12px;top:10px;border:0;background:#f1f3f7;border-radius:50%;width:38px;height:38px;font-size:22px;cursor:pointer}.confetti{position:absolute;inset:-20px;pointer-events:none}.confetti i{position:absolute;width:9px;height:18px;animation:confettiFall 2.8s linear infinite;opacity:.9}.balloon{position:absolute;font-size:42px;animation:balloonFloat 3.5s ease-in-out infinite}.balloon.b1{left:18px;top:70px}.balloon.b2{right:20px;top:95px;animation-delay:.5s}.balloon.b3{left:45px;bottom:30px;animation-delay:1s}.balloon.b4{right:45px;bottom:25px;animation-delay:1.4s}@keyframes bdayPop{from{transform:scale(.65) rotate(-3deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}@keyframes cakeBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}@keyframes balloonFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-15px) rotate(4deg)}}@keyframes confettiFall{0%{transform:translateY(-30px) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(620px) rotate(720deg);opacity:0}}
+.bday-modal{position:fixed;inset:0;background:rgba(16,20,35,.82);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;overflow:hidden}.bday-modal.show{display:flex}.bday-box{position:relative;background:linear-gradient(145deg,#fff,#fff8fb);border-radius:28px;width:min(560px,100%);padding:32px 22px 26px;text-align:center;box-shadow:0 25px 80px #0006;overflow:hidden;animation:bdayPop .55s cubic-bezier(.2,1.4,.4,1)}.bday-box h2{margin:4px 0 8px;font-size:30px}.bday-name{font-size:34px;font-weight:900;margin:12px 0 8px}.bday-message{font-size:17px;line-height:1.7;color:#4c566a}.bday-cake{font-size:76px;animation:cakeBounce 1.2s ease-in-out infinite}.bday-photo-wrap{width:128px;height:128px;margin:4px auto 10px;border-radius:50%;padding:5px;background:linear-gradient(145deg,#f7c948,#ff8a65,#e91e63);box-shadow:0 8px 24px #0002;display:grid;place-items:center;overflow:hidden}.bday-photo{width:100%;height:100%;border-radius:50%;object-fit:cover;background:#eef2f7;display:block}.bday-photo-placeholder{font-size:58px;line-height:1}.bday-close{position:absolute;right:12px;top:10px;border:0;background:#f1f3f7;border-radius:50%;width:38px;height:38px;font-size:22px;cursor:pointer}.confetti{position:absolute;inset:-20px;pointer-events:none}.confetti i{position:absolute;width:9px;height:18px;animation:confettiFall 2.8s linear infinite;opacity:.9}.balloon{position:absolute;font-size:42px;animation:balloonFloat 3.5s ease-in-out infinite}.balloon.b1{left:18px;top:70px}.balloon.b2{right:20px;top:95px;animation-delay:.5s}.balloon.b3{left:45px;bottom:30px;animation-delay:1s}.balloon.b4{right:45px;bottom:25px;animation-delay:1.4s}@keyframes bdayPop{from{transform:scale(.65) rotate(-3deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}@keyframes cakeBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}@keyframes balloonFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-15px) rotate(4deg)}}@keyframes confettiFall{0%{transform:translateY(-30px) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(620px) rotate(720deg);opacity:0}}
 
 .members-highlight{font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.12)}
 
@@ -346,6 +346,7 @@ main{max-width:1100px;margin:22px auto;padding:0 14px}.section{display:none}.sec
     <div class="confetti" id="birthdayConfetti"></div>
     <div class="balloon b1">🎈</div><div class="balloon b2">🎈</div><div class="balloon b3">🎈</div><div class="balloon b4">🎈</div>
     <div class="bday-cake">🎂</div>
+    <div class="bday-photo-wrap" id="birthdayPhotoWrap" aria-label="Birthday member photo"><span id="birthdayPhotoPlaceholder" class="bday-photo-placeholder">👤</span><img id="birthdayPhoto" class="bday-photo" alt="Birthday member photo" style="display:none"></div>
     <h2 id="birthdayTitle">🎉 শুভ জন্মদিন! 🎉</h2>
     <div class="bday-name" id="birthdayName"></div>
     <div class="bday-message" id="birthdayMessage"></div>
@@ -2838,10 +2839,33 @@ function showBirthdayCelebration(){
   playBirthdayMusic();
   const modal=$('birthdayModal'), nameEl=$('birthdayName'), msgEl=$('birthdayMessage'), conf=$('birthdayConfetti');
   let idx=0;
-  function showOne(){
+  let photoRequestToken=0;
+  async function showOne(){
     const m=list[idx];
     nameEl.textContent=m.name||'প্রিয় সদস্য';
     msgEl.innerHTML='🎂 তোমার জন্মদিনে রইল আন্তরিক শুভেচ্ছা ও ভালোবাসা।<br>তোমার জীবন সুখ, সুস্বাস্থ্য, শান্তি ও সাফল্যে ভরে উঠুক।<br><b>শুভ জন্মদিন! 🎉</b>';
+    const photo=$('birthdayPhoto'), placeholder=$('birthdayPhotoPlaceholder');
+    if(!photo||!placeholder)return;
+    const token=++photoRequestToken;
+    photo.style.display='none';
+    photo.removeAttribute('src');
+    placeholder.style.display='inline';
+    let src=String(m.photo||'');
+    if(!src && m.id){
+      try{
+        const data=await rest('/members?select=id,photo&id=eq.'+encodeURIComponent(String(m.id))+'&limit=1');
+        if(Array.isArray(data)&&data[0]){
+          src=String(data[0].photo||'');
+          m.photo=src;
+        }
+      }catch(e){console.warn('Birthday photo loading skipped:',e.message)}
+    }
+    if(token!==photoRequestToken)return;
+    if(src){
+      photo.onload=()=>{if(token===photoRequestToken){placeholder.style.display='none';photo.style.display='block';}};
+      photo.onerror=()=>{if(token===photoRequestToken){photo.style.display='none';placeholder.style.display='inline';}};
+      photo.src=src;
+    }
   }
   conf.innerHTML='';
   for(let i=0;i<70;i++){const x=document.createElement('i');x.style.left=(Math.random()*100)+'%';x.style.top=(-20-Math.random()*180)+'px';x.style.animationDelay=(Math.random()*2.5)+'s';x.style.animationDuration=(2+Math.random()*2)+'s';x.style.transform='rotate('+(Math.random()*360)+'deg)';conf.appendChild(x);}
