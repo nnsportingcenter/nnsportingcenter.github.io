@@ -1558,21 +1558,20 @@ async function loadData(){
 
 async function loadApplications(){
   try{
-    let data;
-    try{
-      data=await rest('/membership_applications?select=id,name,father_name,gender,phone,aadhaar,dob,blood,fee,paid,address,status,member_id,transaction_id,payment_time,created_at&order=created_at.desc');
-    }catch(primaryErr){
-      // Fallback for a temporarily stale PostgREST schema cache.
-      data=await rest('/membership_applications?select=id,name,phone,aadhaar,dob,blood,fee,paid,address,status,member_id,payment_time,created_at&order=created_at.desc');
-      if(Array.isArray(data)) data=data.map(x=>({...x,transaction_id:x.transaction_id||''}));
-    }
+    // Do not read the private applications table directly with the public anon key.
+    // The database RPC verifies the admin password before returning pending rows.
+    if(!settings.pass) throw new Error('Please log in to Admin again.');
+    const data=await rest('/rpc/admin_list_pending_applications',{
+      method:'POST',
+      body:JSON.stringify({p_password:settings.pass})
+    });
     applications=Array.isArray(data)?data:[];
     renderApplications();
   }catch(e){
     console.warn('Applications database load failed:',e.message);
     applications=[];
     renderApplications();
-    showError('Pending applications load failed: '+e.message);
+    showError('Pending applications load failed: '+e.message+' — Supabase SQL setup is required.');
   }
 }
 
